@@ -1,0 +1,26 @@
+<idea-plugin>
+    <id>org.example.pycharm-coverage.py</id>
+    <name>PyCharm Coverage</name>
+    <vendor email="nikblos@outlook.com" url="http://github.com/nbfalcon">Nikita Bloshchanevich</vendor>
+
+    <description><![CDATA[
+    Adds code coverage powered by [coverage.py](https://coverage.readthedocs.io/) to PyCharm community.
+]]></description>
+    <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
+         on how to target different products -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.python</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Add your extensions here -->
+        <programRunner implementation="org.nbfalcon.pycharmCoverage.coveragePy.CoveragePyProgramRunner"/>
+        <coverageRunner implementation="org.nbfalcon.pycharmCoverage.coveragePy.CoveragePyRunner"/>
+        <coverageEngine implementation="org.nbfalcon.pycharmCoverage.coveragePy.CoveragePyEngine"/>
+
+        <projectService serviceImplementation="org.nbfalcon.pycharmCoverage.coveragePy.CoveragePyAnnotator"/>
+    </extensions>
+
+    <actions>
+        <!-- Add your actions here -->
+    </actions>
+</idea-plugin>
