@@ -2,7 +2,9 @@ package org.nbfalcon.pycharmCoverage.coveragePy;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
+import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -37,6 +39,8 @@ public class CoveragePyLoaderXML {
         @JacksonXmlProperty(isAttribute = true)
         public String name;
 
+        @JacksonXmlElementWrapper(localName = "lines")
+        @JacksonXmlProperty(localName = "lines")
         public List<Line> lines;
     }
 
@@ -44,11 +48,19 @@ public class CoveragePyLoaderXML {
         @JacksonXmlProperty(isAttribute = true)
         public String name;
 
+        @JacksonXmlElementWrapper(localName = "classes")
+        @JacksonXmlProperty(localName = "class")
         public List<ClassCoverage> classes;
     }
 
+    @JacksonXmlRootElement(localName = "coverage")
     public static class CoverageOutput {
+        @JacksonXmlElementWrapper(localName = "sources")
+        @JacksonXmlProperty(localName = "source")
         public List<String> sources;
+
+        @JacksonXmlElementWrapper(localName = "packages")
+        @JacksonXmlProperty(localName = "package")
         public List<PackageData> packages;
     }
 }

@@ -9,9 +9,9 @@ import com.intellij.execution.ExecutionManager;
 import com.intellij.execution.ExecutionResult;
 import com.intellij.execution.configurations.*;
 import com.intellij.execution.configurations.coverage.CoverageEnabledConfiguration;
-import com.intellij.execution.runners.DefaultProgramRunnerKt;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.runners.ProgramRunner;
+import com.intellij.execution.runners.RunContentBuilder;
 import com.intellij.execution.ui.RunContentDescriptor;
 import com.intellij.openapi.application.AppUIExecutor;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
@@ -22,6 +22,8 @@ import com.jetbrains.python.run.PythonCommandLineState;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.io.File;
 
 public class CoveragePyProgramRunner implements ProgramRunner<RunnerSettings> {
     private static RunProfile unwrapProfile(@NotNull RunProfile profile) {
@@ -63,16 +65,18 @@ public class CoveragePyProgramRunner implements ProgramRunner<RunnerSettings> {
             final PythonCommandLineState statePy = (PythonCommandLineState) state;
             final ExecutionResult result;
             try {
-                result = statePy.execute(environment.getExecutor(), createPatchers(environment, statePy));
+                result = statePy.execute(environment.getExecutor(),
+                        createPatchers(environment, statePy, covConf.getCoverageFilePath()));
             } catch (ExecutionException e) {
                 throw new RuntimeException(e);
             }
-            if (covConf instanceof CoveragePyEnabledConfiguration)
-                ((CoveragePyEnabledConfiguration) covConf).coverageDirectory = conf.getWorkingDirectorySafe();
             final CoverageSuite suite = covConf.getCurrentCoverageSuite();
+            // if (covConf instanceof CoveragePyEnabledConfiguration)
+            //     ((CoveragePyEnabledConfiguration) covConf).coverageDirectory = conf.getWorkingDirectorySafe();
             if (suite instanceof CoveragePySuite) ((CoveragePySuite) suite).hasRun = true;
 
-            final RunContentDescriptor descriptor = DefaultProgramRunnerKt.showRunContent(result, environment);
+            final RunContentDescriptor descriptor = new RunContentBuilder(result, environment)
+                    .showRunContent(environment.getContentToReuse());
             CoverageHelper.attachToProcess(conf, result.getProcessHandler(), runnerSettings);
             // result.getProcessHandler().startNotify();
             return descriptor;
@@ -80,18 +84,23 @@ public class CoveragePyProgramRunner implements ProgramRunner<RunnerSettings> {
     }
 
     @Nullable
-    private CommandLinePatcher[] createPatchers(@NotNull ExecutionEnvironment environment, PythonCommandLineState statePy) {
+    private CommandLinePatcher[] createPatchers(@NotNull ExecutionEnvironment environment,
+                                                PythonCommandLineState statePy, @Nullable @NonNls String outputPath) {
         return new CommandLinePatcher[]{
                 PyDebugRunner.createRunConfigPatcher(statePy, environment.getRunProfile()),
-                createCoveragePyPatcher()};
+                createCoveragePyPatcher(outputPath)};
     }
 
-    private CommandLinePatcher createCoveragePyPatcher() {
+    private CommandLinePatcher createCoveragePyPatcher(@Nullable @NonNls String outputPath) {
         return generalCommandLine -> {
             final ParamsGroup coverageGroup = generalCommandLine.getParametersList().getParamsGroup(PythonCommandLineState.GROUP_COVERAGE);
             assert coverageGroup != null;
             // FIXME: global/bundled coverage.py
-            coverageGroup.addParameters("-m", "coverage", "run", "--");
+            coverageGroup.addParameters("-m", "coverage", "run");
+            // The JavaCoverageEngine just doesn't download the file if the path is null, and lets the CoverageRunner
+            // proceed as if nothing happened, so we just do the same.
+            if (outputPath != null) coverageGroup.addParameters("-o", new File(outputPath).getAbsolutePath());
+            coverageGroup.addParameter("--");
         };
     }
 }

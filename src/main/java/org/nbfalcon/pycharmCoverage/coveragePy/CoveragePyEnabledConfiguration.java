@@ -5,7 +5,7 @@ import com.intellij.execution.configurations.coverage.CoverageEnabledConfigurati
 import org.jetbrains.annotations.NotNull;
 
 public class CoveragePyEnabledConfiguration extends CoverageEnabledConfiguration {
-    public String coverageDirectory = null;
+    // public String coverageDirectory = null;
 
     public CoveragePyEnabledConfiguration(@NotNull RunConfigurationBase<?> configuration) {
         super(configuration);

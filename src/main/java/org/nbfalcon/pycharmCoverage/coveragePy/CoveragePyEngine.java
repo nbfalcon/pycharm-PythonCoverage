@@ -19,7 +19,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
-import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -61,14 +60,8 @@ public class CoveragePyEngine extends CoverageEngine {
                                                        @NotNull CoverageFileProvider coverageDataFileProvider,
                                                        @NotNull CoverageEnabledConfiguration config) {
         if (!(config.getConfiguration() instanceof AbstractPythonRunConfiguration)) return null;
-        if (!(config instanceof CoveragePyEnabledConfiguration)) return null;
-        final CoveragePyEnabledConfiguration configPy = (CoveragePyEnabledConfiguration) config;
-
-        assert configPy.coverageDirectory != null;
-        CoverageFileProvider provider = new DefaultCoverageFileProvider(
-                Paths.get(configPy.coverageDirectory, ".coverage").toFile());
         return new CoveragePySuite(name,
-                provider, System.currentTimeMillis(), false, false, false, covRunner);
+                coverageDataFileProvider, System.currentTimeMillis(), false, false, false, covRunner);
     }
 
     @Override
