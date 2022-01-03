@@ -1,20 +1,27 @@
 package org.nbfalcon.pycharmCoverage.coveragePy;
 
+import com.intellij.codeEditor.printing.ExportToHTMLSettings;
 import com.intellij.coverage.*;
 import com.intellij.coverage.view.CoverageViewExtension;
 import com.intellij.coverage.view.CoverageViewManager;
 import com.intellij.execution.configurations.RunConfigurationBase;
 import com.intellij.execution.configurations.coverage.CoverageEnabledConfiguration;
 import com.intellij.execution.testframework.AbstractTestProxy;
+import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.NlsActions;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.rt.coverage.data.ProjectData;
 import com.jetbrains.python.PythonFileType;
 import com.jetbrains.python.psi.PyFile;
 import com.jetbrains.python.run.AbstractPythonRunConfiguration;
+import jetbrains.coverage.report.ReportBuilderFactory;
+import jetbrains.coverage.report.SourceCodeProvider;
+import jetbrains.coverage.report.html.HTMLReportBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -22,6 +29,7 @@ import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class CoveragePyEngine extends CoverageEngine {
     public static CoveragePyEngine getInstance() {
@@ -74,9 +82,40 @@ public class CoveragePyEngine extends CoverageEngine {
         return CoveragePyAnnotator.getInstance(project);
     }
 
+    private static final SourceCodeProvider VF_FILE_CODE_PROVIDER = (file) -> {
+        final VirtualFile vFile = VirtualFileManager.getInstance().findFileByUrl("file://" + file);
+        if (vFile == null) return null;
+
+        final byte[] contents = vFile.contentsToByteArray(true);
+        return new String(contents, vFile.getCharset());
+    };
+
     @Override
     public boolean coverageEditorHighlightingApplicableTo(@NotNull PsiFile psiFile) {
         return psiFile instanceof PyFile;
+    }
+
+    @Override
+    public boolean isReportGenerationAvailable(@NotNull Project project, @NotNull DataContext dataContext, @NotNull CoverageSuitesBundle currentSuite) {
+        return true;
+    }
+
+    @Override
+    public void generateReport(@NotNull Project project, @NotNull DataContext dataContext, @NotNull CoverageSuitesBundle currentSuite) {
+        long startNS = System.nanoTime();
+        final ProjectData data = currentSuite.getCoverageData();
+        if (data == null) return;
+        final ExportToHTMLSettings settings = ExportToHTMLSettings.getInstance(project);
+
+        long generationStartNS = System.nanoTime();
+        final HTMLReportBuilder reportBuilder = ReportBuilderFactory.createHTMLReportBuilder();
+        reportBuilder.setReportDir(new File(settings.OUTPUT_DIRECTORY));
+        reportBuilder.generateReport(new CoveragePyGenerationData(data, VF_FILE_CODE_PROVIDER));
+
+        long endNS = System.nanoTime();
+        CoverageLogger.logHTMLReport(project,
+                TimeUnit.NANOSECONDS.toMillis(endNS - startNS),
+                TimeUnit.NANOSECONDS.toMillis(generationStartNS - startNS));
     }
 
     @Override
