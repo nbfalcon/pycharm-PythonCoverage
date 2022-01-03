@@ -1,5 +1,6 @@
 package org.nbfalcon.pycharmCoverage.coveragePy;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import com.intellij.coverage.CoverageEngine;
 import com.intellij.coverage.CoverageRunner;
 import com.intellij.coverage.CoverageSuite;
@@ -107,7 +108,10 @@ public class CoveragePyRunner extends CoverageRunner {
                 return null;
             }
             return loadCoverageOutput(data);
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
+            // Handle "No data to report." (printed to stdout for some reason)
+            if (e instanceof JsonParseException && e.getMessage().startsWith("Unexpected character 'N'")) return null;
             LOG.warn(e);
             return null;
         }
