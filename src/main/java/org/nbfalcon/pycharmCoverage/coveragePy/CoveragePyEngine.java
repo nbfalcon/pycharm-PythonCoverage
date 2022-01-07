@@ -8,6 +8,7 @@ import com.intellij.execution.configurations.RunConfigurationBase;
 import com.intellij.execution.configurations.coverage.CoverageEnabledConfiguration;
 import com.intellij.execution.testframework.AbstractTestProxy;
 import com.intellij.openapi.actionSystem.DataContext;
+import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.NlsActions;
@@ -15,7 +16,10 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
+import com.intellij.rt.coverage.data.JumpData;
+import com.intellij.rt.coverage.data.LineData;
 import com.intellij.rt.coverage.data.ProjectData;
+import com.intellij.rt.coverage.data.SwitchData;
 import com.jetbrains.python.PythonFileType;
 import com.jetbrains.python.psi.PyFile;
 import com.jetbrains.python.run.AbstractPythonRunConfiguration;
@@ -98,6 +102,33 @@ public class CoveragePyEngine extends CoverageEngine {
     @Override
     public boolean isReportGenerationAvailable(@NotNull Project project, @NotNull DataContext dataContext, @NotNull CoverageSuitesBundle currentSuite) {
         return true;
+    }
+
+    @Override
+    public String generateBriefReport(@NotNull Editor editor, @NotNull PsiFile psiFile, int lineNumber, int startOffset, int endOffset, @Nullable LineData lineData) {
+        // FIXME: i18n
+        if (lineData != null) {
+            String hit = lineData.getHits() != 0 ? "Line was hit" : "Line was not hit";
+            String missing = "";
+            if (lineData.switchesCount() > 0) {
+                final SwitchData switch0 = lineData.getSwitchData(0);
+                final int[] keys = switch0.getKeys();
+                if (keys.length == 1) {
+                    if (keys[0] != -1) {
+                        missing = "\nDid not jump to line: " + keys[0];
+                    }
+                    else {
+                        missing = "\nDid not jump to: else";
+                    }
+                }
+                else if (keys.length == 2) {
+                    missing = "\nDid not jump to: line" + keys[0] + ", else";
+                }
+            }
+            return hit + missing;
+        } else {
+            return "Line was not hit";
+        }
     }
 
     @Override

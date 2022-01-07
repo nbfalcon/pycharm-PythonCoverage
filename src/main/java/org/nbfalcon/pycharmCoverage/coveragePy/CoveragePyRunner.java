@@ -17,6 +17,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Objects;
 
 public class CoveragePyRunner extends CoverageRunner {
     private static final Logger LOG = Logger.getInstance(CoveragePyRunner.class);
@@ -35,6 +36,14 @@ public class CoveragePyRunner extends CoverageRunner {
         return packageName.replace('.', '/');
     }
 
+    private static Integer parseIntSafe(String s) {
+        try {
+            return s == null ? null : Integer.parseInt(s);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
     private static ProjectData loadCoverageOutput(CoveragePyLoaderXML.CoverageOutput data) {
         String rootDir = data.sources.get(0);
         ProjectData result = new ProjectData();
@@ -46,14 +55,32 @@ public class CoveragePyRunner extends CoverageRunner {
                 int nLines = (covClass.lines.isEmpty()) ? 0 : covClass.lines.get(covClass.lines.size() - 1).number;
                 LineData[] lines = new LineData[nLines];
                 for (CoveragePyLoaderXML.Line line : covClass.lines) {
-                    // FIXME: i18n
-                    String missing = (line.missingBranches == null) ? null
-                            : (line.missingBranches.equals("exit") ? "<end of file>" : "line " + line.missingBranches);
-                    String desc = "Missing branch: " + missing;
-                    LineData lineData = new LineData(line.number, desc);
+                    LineData lineData = new LineData(line.number, null);
                     lineData.setHits(line.hits);
+                    String missingBranches = line.missingBranches;
                     lineData.setStatus(!line.branch ? (line.hits == 0 ? LineCoverage.NONE : LineCoverage.FULL)
-                            : (line.missingBranches == null ? LineCoverage.FULL : LineCoverage.PARTIAL));
+                            : (missingBranches == null ? LineCoverage.FULL : LineCoverage.PARTIAL));
+                    int[] keys = null;
+                    if (missingBranches != null) {
+                        if (missingBranches.equals("exit")) {
+                            keys = new int[]{-1};
+                        }
+                        else {
+                            boolean haveExit = false;
+                            if (missingBranches.endsWith(",exit")) {
+                                missingBranches = missingBranches.substring(0, missingBranches.length() - 5);
+                                haveExit = true;
+                            }
+                            final Integer l = parseIntSafe(missingBranches);
+                            keys = l == null ? (haveExit ? new int[]{-1} : null)
+                                    : haveExit ? new int[]{l, -1}
+                                    : new int[]{l};
+                        }
+                    }
+                    if (keys != null) {
+                        lineData.addSwitch(0, keys);
+                    }
+                    lineData.fillArrays();
                     lines[line.number - 1] = lineData;
                 }
                 classData.setLines(lines);

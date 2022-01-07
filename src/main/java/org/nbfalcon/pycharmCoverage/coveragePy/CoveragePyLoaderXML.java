@@ -28,10 +28,7 @@ public class CoveragePyLoaderXML {
         @JacksonXmlProperty(isAttribute = true)
         public boolean branch;
 
-        @JacksonXmlProperty(isAttribute = true)
-        public String conditionCoverage;
-
-        @JacksonXmlProperty(isAttribute = true)
+        @JacksonXmlProperty(isAttribute = true, localName = "missing-branches")
         public String missingBranches;
     }
 

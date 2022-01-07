@@ -100,6 +100,7 @@ public class CoveragePyProgramRunner implements ProgramRunner<RunnerSettings> {
             // The JavaCoverageEngine just doesn't download the file if the path is null, and lets the CoverageRunner
             // proceed as if nothing happened, so we just do the same.
             if (outputPath != null) coverageGroup.addParameters("-o", new File(outputPath).getAbsolutePath());
+            coverageGroup.addParameter("--branch");
             coverageGroup.addParameter("--");
         };
     }
