@@ -17,14 +17,9 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.List;
 
 public class CoveragePyRunner extends CoverageRunner {
     private static final Logger LOG = Logger.getInstance(CoveragePyRunner.class);
-
-    private static int getNLines(List<Integer> lines) {
-        return lines.isEmpty() ? 0 : lines.get(lines.size() - 1);
-    }
 
     public static CoveragePyRunner getInstance() {
         return getInstance(CoveragePyRunner.class);
@@ -35,29 +30,6 @@ public class CoveragePyRunner extends CoverageRunner {
                 Arrays.stream(paths).filter((path) -> !path.isEmpty() && !path.equals("/")).toArray(String[]::new);
         return Paths.get(base, filtered).toFile().getAbsolutePath();
     }
-
-    // private static ProjectData parseCoverageOutput(CoveragePyLoaderJSON.CoverageOutput data) {
-    //     ProjectData result = new ProjectData();
-    //     for (Map.Entry<String, CoveragePyLoaderJSON.FileData> file : data.files.entrySet()) {
-    //         final ClassData classData = result.getOrCreateClassData(file.getKey());
-    //
-    //         final CoveragePyLoaderJSON.FileData fileData = file.getValue();
-    //         int nLines = Math.max(getNLines(fileData.executedLines), getNLines(fileData.missingLines));
-    //         final LineData[] lines = new LineData[nLines];
-    //         for (int executedLine : fileData.executedLines) {
-    //             final LineData lineData = new LineData(executedLine, null);
-    //             lineData.setHits(1);
-    //             lines[executedLine - 1] = lineData;
-    //         }
-    //         for (int missingLine : fileData.missingLines) {
-    //             final LineData lineData = new LineData(missingLine, null);
-    //             lineData.setHits(0);
-    //             lines[missingLine - 1] = lineData;
-    //         }
-    //
-    //         classData.setLines(lines);
-    //     }
-    //     return result;
 
     private static String package2Path(String packageName) {
         return packageName.replace('.', '/');
@@ -119,27 +91,6 @@ public class CoveragePyRunner extends CoverageRunner {
             return null;
         }
     }
-
-    // @Override
-    // public @Nullable ProjectData loadCoverageData(@NotNull File sessionDataFile, @Nullable CoverageSuite baseCoverageSuite) {
-    //     try {
-    //         Process process = new ProcessBuilder()
-    //                 .command("python3.9", "-m", "coverage", "json", "-o", "-")
-    //                 .directory(sessionDataFile)
-    //                 .start();
-    //         InputStream input = process.getInputStream();
-    //         BufferedReader reader = new BufferedReader(new InputStreamReader(input));
-    //         final CoveragePyLoaderJSON.CoverageOutput data = CoveragePyLoaderJSON.loadCoverageJsonSync(reader);
-    //         if (data == null) {
-    //             LOG.warn("coverage.py json command returned invalid json");
-    //             return null;
-    //         }
-    //         return parseCoverageOutput(data);
-    //     } catch (IOException e) {
-    //         LOG.warn(e);
-    //         return null;
-    //     }
-    // }
 
     @Override
     public @NotNull @NonNls String getPresentableName() {
