@@ -16,7 +16,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
-import com.intellij.rt.coverage.data.JumpData;
 import com.intellij.rt.coverage.data.LineData;
 import com.intellij.rt.coverage.data.ProjectData;
 import com.intellij.rt.coverage.data.SwitchData;
@@ -113,16 +112,11 @@ public class CoveragePyEngine extends CoverageEngine {
             if (lineData.switchesCount() > 0) {
                 final SwitchData switch0 = lineData.getSwitchData(0);
                 final int[] keys = switch0.getKeys();
-                if (keys.length == 1) {
-                    if (keys[0] != -1) {
-                        missing = "\nDid not jump to line: " + keys[0];
-                    }
-                    else {
-                        missing = "\nDid not jump to: else";
-                    }
-                }
-                else if (keys.length == 2) {
-                    missing = "\nDid not jump to: line" + keys[0] + ", else";
+                if (keys != null && keys.length > 0) {
+                    final int key = keys[0];
+                    missing = "\n" + (key == -1
+                            ? "Did not jump to: else (exit)"
+                            : "Did not jump to: line " + key);
                 }
             }
             return hit + missing;

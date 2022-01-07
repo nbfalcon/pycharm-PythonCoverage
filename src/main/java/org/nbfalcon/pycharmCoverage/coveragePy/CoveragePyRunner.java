@@ -61,25 +61,12 @@ public class CoveragePyRunner extends CoverageRunner {
                     lineData.setStatus(!line.branch ? (line.hits == 0 ? LineCoverage.NONE : LineCoverage.FULL)
                             : (missingBranches == null ? LineCoverage.FULL : LineCoverage.PARTIAL));
                     int[] keys = null;
-                    if (missingBranches != null) {
-                        if (missingBranches.equals("exit")) {
-                            keys = new int[]{-1};
-                        }
-                        else {
-                            boolean haveExit = false;
-                            if (missingBranches.endsWith(",exit")) {
-                                missingBranches = missingBranches.substring(0, missingBranches.length() - 5);
-                                haveExit = true;
-                            }
-                            final Integer l = parseIntSafe(missingBranches);
-                            keys = l == null ? (haveExit ? new int[]{-1} : null)
-                                    : haveExit ? new int[]{l, -1}
-                                    : new int[]{l};
-                        }
+                    if (Objects.equals(missingBranches, "exit")) keys = new int[]{-1};
+                    else {
+                        final Integer l = parseIntSafe(missingBranches);
+                        if (l != null) keys = new int[]{l};
                     }
-                    if (keys != null) {
-                        lineData.addSwitch(0, keys);
-                    }
+                    if (keys != null) lineData.addSwitch(0, keys);
                     lineData.fillArrays();
                     lines[line.number - 1] = lineData;
                 }
