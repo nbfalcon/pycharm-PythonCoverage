@@ -107,7 +107,9 @@ public class CoveragePyEngine extends CoverageEngine {
     public String generateBriefReport(@NotNull Editor editor, @NotNull PsiFile psiFile, int lineNumber, int startOffset, int endOffset, @Nullable LineData lineData) {
         // FIXME: i18n
         if (lineData != null) {
-            String hit = lineData.getHits() != 0 ? "Line was hit" : "Line was not hit";
+            String hit = lineData.getHits() != 0
+                    ? CoveragePyBundle.message("brief.lineHit")
+                    : CoveragePyBundle.message("brief.lineNotHit");
             String missing = "";
             if (lineData.switchesCount() > 0) {
                 final SwitchData switch0 = lineData.getSwitchData(0);
@@ -115,13 +117,13 @@ public class CoveragePyEngine extends CoverageEngine {
                 if (keys != null && keys.length > 0) {
                     final int key = keys[0];
                     missing = "\n" + (key == -1
-                            ? "Did not jump to: else (exit)"
-                            : "Did not jump to: line " + key);
+                            ? CoveragePyBundle.message("brief.missingJumpExit")
+                            : CoveragePyBundle.message("brief.missingJumpLine", key));
                 }
             }
             return hit + missing;
         } else {
-            return "Line was not hit";
+            return CoveragePyBundle.message("brief.lineNotHit");
         }
     }
 

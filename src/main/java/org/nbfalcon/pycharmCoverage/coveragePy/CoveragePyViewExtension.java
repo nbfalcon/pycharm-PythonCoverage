@@ -26,7 +26,7 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
     public ColumnInfo[] createColumnInfos() {
         return new ColumnInfo[]{
                 new ElementColumnInfo(),
-                new PercentageCoverageColumnInfo(1, "Lines, %", mySuitesBundle, myStateBean)};
+                new PercentageCoverageColumnInfo(1, CoveragePyBundle.message("viewExtension.column.line%"), mySuitesBundle, myStateBean)};
     }
 
     @Override
