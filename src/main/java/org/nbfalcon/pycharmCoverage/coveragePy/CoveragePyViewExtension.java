@@ -11,6 +11,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.PsiFile;
 import com.intellij.util.ui.ColumnInfo;
 import com.jetbrains.python.PythonFileType;
+import org.nbfalcon.pycharmCoverage.i18n.PycharmCoverageBundle;
 
 import java.util.List;
 import java.util.Objects;
@@ -26,7 +27,7 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
     public ColumnInfo[] createColumnInfos() {
         return new ColumnInfo[]{
                 new ElementColumnInfo(),
-                new PercentageCoverageColumnInfo(1, CoveragePyBundle.message("viewExtension.column.line%"), mySuitesBundle, myStateBean)};
+                new PercentageCoverageColumnInfo(1, PycharmCoverageBundle.message("viewExtension.column.line%"), mySuitesBundle, myStateBean)};
     }
 
     @Override

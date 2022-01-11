@@ -12,6 +12,8 @@ import com.intellij.rt.coverage.data.ProjectData;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.nbfalcon.pycharmCoverage.settings.PycharmCoverageApplicationSettings;
+import org.nbfalcon.pycharmCoverage.settings.SettingsUtil;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -79,13 +81,14 @@ public class CoveragePyRunner extends CoverageRunner {
     @Override
     public @Nullable ProjectData loadCoverageData(@NotNull File sessionDataFile, @Nullable CoverageSuite baseCoverageSuite) {
         try {
-            Process process = new ProcessBuilder()
-                    // FIXME: choose a python installation. Also, what if not installed?
-                    .command("python3.9", "-m", "coverage", "xml",
+            // FIXME: on error: show a balloon and somehow allow the user to restart
+            final Process process = SettingsUtil.createProcess(
+                            PycharmCoverageApplicationSettings.getInstance().coveragePyLoaderPythonCommand,
+                            "-m", "coverage", "xml",
                             "-c", sessionDataFile.getAbsolutePath(),
                             "-o", "-")
                     .start();
-            process.waitFor();
+            if (process.isAlive()) process.waitFor();
             InputStream input = process.getInputStream();
             BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
             final CoveragePyLoaderXML.CoverageOutput data = CoveragePyLoaderXML.loadFromXML(reader);

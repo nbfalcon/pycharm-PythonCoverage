@@ -18,6 +18,10 @@
         <coverageEngine implementation="org.nbfalcon.pycharmCoverage.coveragePy.CoveragePyEngine"/>
 
         <projectService serviceImplementation="org.nbfalcon.pycharmCoverage.coveragePy.CoveragePyAnnotator"/>
+
+        <projectService serviceImplementation="org.nbfalcon.pycharmCoverage.settings.PycharmCoverageProjectSettings"/>
+        <applicationService serviceImplementation="org.nbfalcon.pycharmCoverage.settings.PycharmCoverageApplicationSettings"/>
+        <coverageOptions implementation="org.nbfalcon.pycharmCoverage.settings.PycharmCoverageSettingsUi"/>
     </extensions>
 
     <actions>

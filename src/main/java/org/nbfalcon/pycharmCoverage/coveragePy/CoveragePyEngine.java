@@ -27,6 +27,7 @@ import jetbrains.coverage.report.SourceCodeProvider;
 import jetbrains.coverage.report.html.HTMLReportBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.nbfalcon.pycharmCoverage.i18n.PycharmCoverageBundle;
 
 import java.io.File;
 import java.util.Collections;
@@ -57,7 +58,6 @@ public class CoveragePyEngine extends CoverageEngine {
     @Override
     public @Nullable CoverageSuite createCoverageSuite(@NotNull CoverageRunner covRunner, @NotNull String name, @NotNull CoverageFileProvider coverageDataFileProvider, String @Nullable [] filters, long lastCoverageTimeStamp, @Nullable String suiteToMerge, boolean coverageByTestEnabled, boolean tracingEnabled, boolean trackTestFolders) {
         // FIXME: handle filters, also in CoveragePyEnabledConfiguration
-        // FIXME: inject the path as python arg instead
         return new CoveragePySuite(name, null, System.currentTimeMillis(), false, false, false, covRunner);
     }
 
@@ -108,8 +108,8 @@ public class CoveragePyEngine extends CoverageEngine {
         // FIXME: i18n
         if (lineData != null) {
             String hit = lineData.getHits() != 0
-                    ? CoveragePyBundle.message("brief.lineHit")
-                    : CoveragePyBundle.message("brief.lineNotHit");
+                    ? PycharmCoverageBundle.message("brief.lineHit")
+                    : PycharmCoverageBundle.message("brief.lineNotHit");
             String missing = "";
             if (lineData.switchesCount() > 0) {
                 final SwitchData switch0 = lineData.getSwitchData(0);
@@ -117,13 +117,13 @@ public class CoveragePyEngine extends CoverageEngine {
                 if (keys != null && keys.length > 0) {
                     final int key = keys[0];
                     missing = "\n" + (key == -1
-                            ? CoveragePyBundle.message("brief.missingJumpExit")
-                            : CoveragePyBundle.message("brief.missingJumpLine", key));
+                            ? PycharmCoverageBundle.message("brief.missingJumpExit")
+                            : PycharmCoverageBundle.message("brief.missingJumpLine", key));
                 }
             }
             return hit + missing;
         } else {
-            return CoveragePyBundle.message("brief.lineNotHit");
+            return PycharmCoverageBundle.message("brief.lineNotHit");
         }
     }
 
