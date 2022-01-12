@@ -105,7 +105,6 @@ public class CoveragePyEngine extends CoverageEngine {
 
     @Override
     public String generateBriefReport(@NotNull Editor editor, @NotNull PsiFile psiFile, int lineNumber, int startOffset, int endOffset, @Nullable LineData lineData) {
-        // FIXME: i18n
         if (lineData != null) {
             String hit = lineData.getHits() != 0
                     ? PycharmCoverageBundle.message("brief.lineHit")

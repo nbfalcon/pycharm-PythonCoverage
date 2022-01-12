@@ -15,6 +15,7 @@ import com.intellij.execution.runners.RunContentBuilder;
 import com.intellij.execution.ui.RunContentDescriptor;
 import com.intellij.openapi.application.AppUIExecutor;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
+import com.intellij.openapi.project.Project;
 import com.jetbrains.python.debugger.PyDebugRunner;
 import com.jetbrains.python.run.AbstractPythonRunConfiguration;
 import com.jetbrains.python.run.CommandLinePatcher;
@@ -22,6 +23,8 @@ import com.jetbrains.python.run.PythonCommandLineState;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.nbfalcon.pycharmCoverage.settings.PycharmCoverageProjectSettings;
+import org.nbfalcon.pycharmCoverage.util.ShellArgumentTokenizer;
 
 import java.io.File;
 
@@ -59,14 +62,16 @@ public class CoveragePyProgramRunner implements ProgramRunner<RunnerSettings> {
         final CoverageEnabledConfiguration covConf = CoverageEnabledConfiguration.getOrCreate(conf);
 
         // FIXME: don't use submit
-        ExecutionManager.getInstance(environment.getProject()).startRunProfile(environment, () -> AppUIExecutor.onUiThread().submit(() -> {
+        final Project project = environment.getProject();
+        ExecutionManager.getInstance(project).startRunProfile(environment, () -> AppUIExecutor.onUiThread().submit(() -> {
             // PyDebugRunner also does this for some reason
             FileDocumentManager.getInstance().saveAllDocuments();
             final PythonCommandLineState statePy = (PythonCommandLineState) state;
             final ExecutionResult result;
             try {
                 result = statePy.execute(environment.getExecutor(),
-                        createPatchers(environment, statePy, covConf.getCoverageFilePath()));
+                        createPatchers(environment, statePy, covConf.getCoverageFilePath(),
+                                PycharmCoverageProjectSettings.getInstance(project)));
             } catch (ExecutionException e) {
                 throw new RuntimeException(e);
             }
@@ -83,24 +88,26 @@ public class CoveragePyProgramRunner implements ProgramRunner<RunnerSettings> {
         }));
     }
 
-    @Nullable
     private CommandLinePatcher[] createPatchers(@NotNull ExecutionEnvironment environment,
-                                                PythonCommandLineState statePy, @Nullable @NonNls String outputPath) {
+                                                PythonCommandLineState statePy,
+                                                @Nullable @NonNls String outputPath,
+                                                PycharmCoverageProjectSettings settings) {
         return new CommandLinePatcher[]{
                 PyDebugRunner.createRunConfigPatcher(statePy, environment.getRunProfile()),
-                createCoveragePyPatcher(outputPath)};
+                createCoveragePyPatcher(outputPath, settings)};
     }
 
-    private CommandLinePatcher createCoveragePyPatcher(@Nullable @NonNls String outputPath) {
+    private CommandLinePatcher createCoveragePyPatcher(@Nullable @NonNls String outputPath, PycharmCoverageProjectSettings settings) {
         return generalCommandLine -> {
             final ParamsGroup coverageGroup = generalCommandLine.getParametersList().getParamsGroup(PythonCommandLineState.GROUP_COVERAGE);
             assert coverageGroup != null;
-            // FIXME: global/bundled coverage.py
-            coverageGroup.addParameters("-m", "coverage", "run");
+            if (settings.coveragePyUseModule) coverageGroup.addParameters(settings.getCoveragePyModuleArgs());
+            else coverageGroup.addParameters("-m", "coverage"); // FIXME: use bundled
+            coverageGroup.addParameters("run");
             // The JavaCoverageEngine just doesn't download the file if the path is null, and lets the CoverageRunner
             // proceed as if nothing happened, so we just do the same.
             if (outputPath != null) coverageGroup.addParameters("-o", new File(outputPath).getAbsolutePath());
-            coverageGroup.addParameter("--branch");
+            if (settings.enableBranchCoverage) coverageGroup.addParameter("--branch");
             coverageGroup.addParameter("--");
         };
     }

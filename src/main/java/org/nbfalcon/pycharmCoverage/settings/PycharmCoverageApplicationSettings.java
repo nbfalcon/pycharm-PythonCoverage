@@ -9,7 +9,11 @@ import org.jetbrains.annotations.NotNull;
 
 @State(name = "PycharmCoverage.Global.Settings", storages = @Storage(value = "pycharmCoverage.xml", roamingType = RoamingType.PER_OS))
 public class PycharmCoverageApplicationSettings implements PersistentStateComponent<PycharmCoverageApplicationSettings> {
-    public String coveragePyLoaderPythonCommand = "python";
+    public String coveragePyLoaderPythonCommand = null;
+
+    public String getCoveragePyLoaderPythonCommand() {
+        return coveragePyLoaderPythonCommand == null ? "python" : coveragePyLoaderPythonCommand;
+    }
 
     public static PycharmCoverageApplicationSettings getInstance() {
         return ApplicationManager.getApplication().getService(PycharmCoverageApplicationSettings.class);

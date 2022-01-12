@@ -83,7 +83,7 @@ public class CoveragePyRunner extends CoverageRunner {
         try {
             // FIXME: on error: show a balloon and somehow allow the user to restart
             final Process process = SettingsUtil.createProcess(
-                            PycharmCoverageApplicationSettings.getInstance().coveragePyLoaderPythonCommand,
+                            PycharmCoverageApplicationSettings.getInstance().getCoveragePyLoaderPythonCommand(),
                             "-m", "coverage", "xml",
                             "-c", sessionDataFile.getAbsolutePath(),
                             "-o", "-")

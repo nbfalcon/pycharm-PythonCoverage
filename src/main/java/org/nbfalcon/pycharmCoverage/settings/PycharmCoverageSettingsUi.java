@@ -3,27 +3,26 @@ package org.nbfalcon.pycharmCoverage.settings;
 import com.intellij.coverage.CoverageOptions;
 import com.intellij.openapi.project.Project;
 import com.intellij.ui.IdeBorderFactory;
+import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
-import com.intellij.ui.components.JBRadioButton;
 import com.intellij.ui.components.JBTextField;
 import net.miginfocom.swing.MigLayout;
 import org.jetbrains.annotations.NotNull;
-import org.nbfalcon.pycharmCoverage.util.swing.DocumentChangeListener;
-import org.nbfalcon.pycharmCoverage.util.swing.EnumButtonGroup;
+import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import javax.swing.event.DocumentEvent;
+import javax.swing.text.JTextComponent;
 import java.awt.event.ItemListener;
+import java.util.Objects;
 
 public class PycharmCoverageSettingsUi extends CoverageOptions {
     private final @NotNull Project myProject;
 
     // UI
     private JBTextField coveragePyReporterPythonCommand;
-    private EnumButtonGroup<PycharmCoverageProjectSettings.WhichRunner> coveragePyWhichRunner;
+    private JBCheckBox coveragePyUseModule;
     private JBTextField coveragePyModule;
-
-    private boolean myIsModified = false;
+    private JBCheckBox branchCoverage;
 
     public PycharmCoverageSettingsUi(@NotNull Project project) {
         this.myProject = project;
@@ -36,43 +35,49 @@ public class PycharmCoverageSettingsUi extends CoverageOptions {
         MigLayout layout = new MigLayout("gap rel 0");
         mainPanel.setLayout(layout);
 
+        coveragePyReporterPythonCommand = new JBTextField();
+        coveragePyReporterPythonCommand.getEmptyText().setText("python");
+        coveragePyUseModule = new JBCheckBox("Use custom module:");
+        coveragePyModule = new JBTextField();
+        coveragePyModule.getEmptyText().setText("-m coverage");
+        branchCoverage = new JBCheckBox("Measure branch coverage (if-else)");
+
         mainPanel.setBorder(IdeBorderFactory.createTitledBorder("Python Coverage"));
         mainPanel.add(new JBLabel("Reporter python command (global):"));
-        mainPanel.add(coveragePyReporterPythonCommand = new JBTextField("python"), "wrap, pushx, growx");
+        mainPanel.add(coveragePyReporterPythonCommand, "wrap, pushx, growx");
+        mainPanel.add(coveragePyUseModule);
+        mainPanel.add(coveragePyModule, "wrap, pushx, growx");
+        mainPanel.add(branchCoverage, "wrap");
 
-        final JBRadioButton coveragePyUseBuiltin = new JBRadioButton("Use built-in coverage.py");
-        final JBRadioButton coveragePyUseCustom = new JBRadioButton("Use custom module:");
-        coveragePyWhichRunner = new EnumButtonGroup<>();
-        coveragePyWhichRunner.add(
-                PycharmCoverageProjectSettings.WhichRunner.BUILT_IN,
-                coveragePyUseBuiltin,
-                mainPanel, "wrap");
-        coveragePyWhichRunner.add(
-                PycharmCoverageProjectSettings.WhichRunner.CUSTOM,
-                coveragePyUseCustom,
-                mainPanel
-        );
-
-        mainPanel.add(coveragePyModule = new JBTextField("-m coverage"), "wrap, pushx, growx");
-        final ItemListener coveragePyUseCustomListener = (ignored) -> {
-            boolean selected = coveragePyUseCustom.isSelected();
-            coveragePyModule.setEnabled(selected);
+        final ItemListener coveragePyEnableModuleListener = (ignored) -> {
+            coveragePyModule.setEnabled(coveragePyUseModule.isSelected());
         };
-        coveragePyUseCustom.addItemListener(coveragePyUseCustomListener);
-        coveragePyWhichRunner.setSelected(PycharmCoverageProjectSettings.WhichRunner.BUILT_IN);
-        coveragePyUseCustomListener.itemStateChanged(null);
+        coveragePyUseModule.addItemListener(coveragePyEnableModuleListener);
+        coveragePyEnableModuleListener.itemStateChanged(null);
 
-        modifiedListener(coveragePyUseBuiltin);
-        modifiedListener(coveragePyUseCustom);
-        modifiedListener(coveragePyReporterPythonCommand);
-        modifiedListener(coveragePyModule);
-
+        reset();
         return mainPanel;
     }
 
     @Override
     public boolean isModified() {
-        return myIsModified;
+        final PycharmCoverageApplicationSettings application = PycharmCoverageApplicationSettings.getInstance();
+        final PycharmCoverageProjectSettings project = PycharmCoverageProjectSettings.getInstance(myProject);
+
+        final boolean unmodified = project.coveragePyUseModule == coveragePyUseModule.isSelected()
+                && project.enableBranchCoverage == branchCoverage.isSelected()
+                && Objects.equals(application.coveragePyLoaderPythonCommand, getTextNull(coveragePyReporterPythonCommand))
+                && Objects.equals(project.coveragePyModule, getTextNull(coveragePyModule));
+        return !unmodified;
+    }
+
+    private static @Nullable String getTextNull(JTextComponent field) {
+        final String text = field.getText();
+        return text.isBlank() ? null : text;
+    }
+
+    private static void setTextNull(JTextComponent field, @Nullable String text) {
+        field.setText(text == null ? "" : text);
     }
 
     @Override
@@ -80,11 +85,10 @@ public class PycharmCoverageSettingsUi extends CoverageOptions {
         final PycharmCoverageApplicationSettings application = PycharmCoverageApplicationSettings.getInstance();
         final PycharmCoverageProjectSettings project = PycharmCoverageProjectSettings.getInstance(myProject);
 
-        application.coveragePyLoaderPythonCommand = coveragePyReporterPythonCommand.getText();
-        project.coveragePyWhichRunner = coveragePyWhichRunner.getSelected();
-        project.coveragePyModule = coveragePyModule.getText();
-
-        myIsModified = false;
+        application.coveragePyLoaderPythonCommand = getTextNull(coveragePyReporterPythonCommand);
+        project.coveragePyModule = getTextNull(coveragePyModule);
+        project.coveragePyUseModule = coveragePyUseModule.isSelected();
+        project.enableBranchCoverage = branchCoverage.isSelected();
     }
 
     @Override
@@ -92,29 +96,9 @@ public class PycharmCoverageSettingsUi extends CoverageOptions {
         final PycharmCoverageApplicationSettings application = PycharmCoverageApplicationSettings.getInstance();
         final PycharmCoverageProjectSettings project = PycharmCoverageProjectSettings.getInstance(myProject);
 
-        application.coveragePyLoaderPythonCommand = coveragePyReporterPythonCommand.getText();
-        coveragePyWhichRunner.setSelected(project.coveragePyWhichRunner);
-        coveragePyModule.setText(project.coveragePyModule);
-
-        myIsModified = false;
-    }
-
-    private void setModified() {
-        myIsModified = true;
-    }
-
-    private void modifiedListener(AbstractButton button) {
-        button.addItemListener(e -> {
-            if (button.isSelected()) setModified();
-        });
-    }
-
-    private void modifiedListener(JTextField field) {
-        field.getDocument().addDocumentListener(new DocumentChangeListener() {
-            @Override
-            public void onDocumentChange(DocumentEvent e) {
-                setModified();
-            }
-        });
+        setTextNull(coveragePyReporterPythonCommand, application.coveragePyLoaderPythonCommand);
+        setTextNull(coveragePyModule, project.coveragePyModule);
+        coveragePyUseModule.setSelected(project.coveragePyUseModule);
+        branchCoverage.setSelected(project.enableBranchCoverage);
     }
 }
