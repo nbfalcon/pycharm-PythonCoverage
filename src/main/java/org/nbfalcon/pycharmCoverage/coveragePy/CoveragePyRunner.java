@@ -82,13 +82,13 @@ public class CoveragePyRunner extends CoverageRunner {
     public @Nullable ProjectData loadCoverageData(@NotNull File sessionDataFile, @Nullable CoverageSuite baseCoverageSuite) {
         try {
             // FIXME: on error: show a balloon and somehow allow the user to restart
-            final Process process = SettingsUtil.createProcess(
-                            PycharmCoverageApplicationSettings.getInstance().getCoveragePyLoaderPythonCommand(),
-                            "-m", "coverage", "xml",
-                            "-c", sessionDataFile.getAbsolutePath(),
-                            "-o", "-")
-                    .start();
-            if (process.isAlive()) process.waitFor();
+            final ProcessBuilder builder = SettingsUtil.createProcess(
+                    PycharmCoverageApplicationSettings.getInstance().getCoveragePyLoaderPythonCommand(),
+                    "-m", "coverage", "xml",
+                    "-c", sessionDataFile.getAbsolutePath(),
+                    "-o", "-");
+            final Process process = builder.start();
+            process.waitFor(); // FIXME: timeout + error (see rust)
             InputStream input = process.getInputStream();
             BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
             final CoveragePyLoaderXML.CoverageOutput data = CoveragePyLoaderXML.loadFromXML(reader);
@@ -101,6 +101,7 @@ public class CoveragePyRunner extends CoverageRunner {
         catch (IOException e) {
             // Handle "No data to report." (printed to stdout for some reason)
             if (e instanceof JsonParseException && e.getMessage().startsWith("Unexpected character 'N'")) return null;
+            // FIXME: error dialog
             LOG.warn(e);
             return null;
         }

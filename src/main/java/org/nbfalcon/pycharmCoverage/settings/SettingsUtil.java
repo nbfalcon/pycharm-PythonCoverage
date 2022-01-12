@@ -9,6 +9,6 @@ public class SettingsUtil {
     public static ProcessBuilder createProcess(String baseCommandLine, String... args) {
         final List<String> baseArgs = ShellArgumentTokenizer.tokenize(baseCommandLine);
         baseArgs.addAll(Arrays.asList(args));
-        return new ProcessBuilder(baseCommandLine);
+        return new ProcessBuilder(baseArgs);
     }
 }
