@@ -37,7 +37,7 @@ public class CoveragePyProgramRunner implements ProgramRunner<RunnerSettings> {
 
     @Override
     public @NotNull @NonNls String getRunnerId() {
-        return "coverage.py";
+        return "Coverage.py";
     }
 
     @Override

@@ -56,13 +56,17 @@ public class CoveragePyEngine extends CoverageEngine {
     }
 
     @Override
-    public @Nullable CoverageSuite createCoverageSuite(@NotNull CoverageRunner covRunner, @NotNull String name, @NotNull CoverageFileProvider coverageDataFileProvider, String @Nullable [] filters, long lastCoverageTimeStamp, @Nullable String suiteToMerge, boolean coverageByTestEnabled, boolean tracingEnabled, boolean trackTestFolders) {
+    public @Nullable CoverageSuite createCoverageSuite(@NotNull CoverageRunner covRunner, @NotNull String name,
+                                                       @NotNull CoverageFileProvider coverageDataFileProvider, @Nullable String[] filters, long lastCoverageTimeStamp, @Nullable String suiteToMerge, boolean coverageByTestEnabled, boolean tracingEnabled, boolean trackTestFolders) {
         // FIXME: handle filters, also in CoveragePyEnabledConfiguration
         return new CoveragePySuite(name, null, System.currentTimeMillis(), false, false, false, covRunner);
     }
 
     @Override
-    public @Nullable CoverageSuite createCoverageSuite(@NotNull CoverageRunner covRunner, @NotNull String name, @NotNull CoverageFileProvider coverageDataFileProvider, String @Nullable [] filters, long lastCoverageTimeStamp, @Nullable String suiteToMerge, boolean coverageByTestEnabled, boolean tracingEnabled, boolean trackTestFolders, Project project) {
+    public @Nullable CoverageSuite createCoverageSuite(@NotNull CoverageRunner covRunner, @NotNull String name,
+                                                       @NotNull CoverageFileProvider coverageDataFileProvider,
+                                                       @Nullable String[] filters, long lastCoverageTimeStamp,
+                                                       @Nullable String suiteToMerge, boolean coverageByTestEnabled, boolean tracingEnabled, boolean trackTestFolders, Project project) {
         return createCoverageSuite(covRunner, name, coverageDataFileProvider, filters, lastCoverageTimeStamp, suiteToMerge, coverageByTestEnabled, tracingEnabled, trackTestFolders);
     }
 
@@ -167,7 +171,7 @@ public class CoveragePyEngine extends CoverageEngine {
     }
 
     @Override
-    public List<PsiElement> findTestsByNames(String @NotNull [] testNames, @NotNull Project project) {
+    public List<PsiElement> findTestsByNames(@NotNull String[] testNames, @NotNull Project project) {
         return Collections.emptyList();
     }
 
@@ -178,7 +182,7 @@ public class CoveragePyEngine extends CoverageEngine {
 
     @Override
     public @NlsActions.ActionText String getPresentableText() {
-        return "Coverage.Py";
+        return "Coverage.py";
     }
 
     @Override

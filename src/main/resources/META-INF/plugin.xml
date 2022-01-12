@@ -1,5 +1,5 @@
 <idea-plugin>
-    <id>org.example.pycharm-coverage.py</id>
+    <id>org.example.pycharm-coverage</id>
     <name>PyCharm Coverage</name>
     <vendor email="nikblos@outlook.com" url="http://github.com/nbfalcon">Nikita Bloshchanevich</vendor>
 

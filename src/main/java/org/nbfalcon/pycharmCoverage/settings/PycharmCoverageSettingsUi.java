@@ -1,9 +1,7 @@
 package org.nbfalcon.pycharmCoverage.settings;
 
 import com.intellij.coverage.CoverageOptions;
-import com.intellij.openapi.fileChooser.FileChooserDescriptor;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
-import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.TextComponentAccessor;
 import com.intellij.openapi.ui.TextFieldWithBrowseButton;
@@ -15,6 +13,7 @@ import com.jetbrains.python.PythonFileType;
 import net.miginfocom.swing.MigLayout;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.nbfalcon.pycharmCoverage.i18n.PycharmCoverageBundle;
 
 import javax.swing.*;
 import java.awt.event.ItemListener;
@@ -51,6 +50,7 @@ public class PycharmCoverageSettingsUi extends CoverageOptions {
         mainPanel.setLayout(layout);
 
         coveragePyReporterPythonCommand = new TextFieldWithBrowseButton();
+        // FIXME: What if wrong/empty (e.g. '"')
         ((JBTextField) coveragePyReporterPythonCommand.getTextField()).getEmptyText().setText("python");
         coveragePyReporterPythonCommand.addBrowseFolderListener(
                 "Select Executable",
@@ -65,10 +65,10 @@ public class PycharmCoverageSettingsUi extends CoverageOptions {
                 "Select Python File",
                 null, myProject,
                 FileChooserDescriptorFactory.createSingleFileDescriptor(PythonFileType.INSTANCE));
-        branchCoverage = new JBCheckBox("Measure branch coverage (if-else)");
+        branchCoverage = new JBCheckBox(PycharmCoverageBundle.message("settings.measureBranchCoverage"));
 
-        mainPanel.setBorder(IdeBorderFactory.createTitledBorder("Python Coverage"));
-        mainPanel.add(new JBLabel("Reporter python command (global):"));
+        mainPanel.setBorder(IdeBorderFactory.createTitledBorder(PycharmCoverageBundle.message("settings.borderTitle")));
+        mainPanel.add(new JBLabel(PycharmCoverageBundle.message("settings.reporterPythonCommand")));
         mainPanel.add(coveragePyReporterPythonCommand, "wrap, pushx, growx");
         mainPanel.add(coveragePyUseModule);
         mainPanel.add(coveragePyModule, "wrap, pushx, growx");

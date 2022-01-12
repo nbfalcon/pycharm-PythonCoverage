@@ -112,7 +112,7 @@ public class CoveragePyRunner extends CoverageRunner {
 
     @Override
     public @NotNull @NonNls String getPresentableName() {
-        return "coverage.py";
+        return "Coverage.py";
     }
 
     @Override

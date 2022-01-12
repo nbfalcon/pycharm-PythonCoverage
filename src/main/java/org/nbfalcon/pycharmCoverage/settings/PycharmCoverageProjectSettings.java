@@ -12,8 +12,9 @@ import java.util.List;
 
 @State(name = "PycharmCoverage.Settings", storages = @Storage(StoragePathMacros.WORKSPACE_FILE))
 public class PycharmCoverageProjectSettings implements PersistentStateComponent<PycharmCoverageProjectSettings> {
+    private static final List<String> M_COVERAGE = List.of("-m", "coverage");
+
     public String coveragePyModule = null;
-    private static List<String> M_COVERAGE = List.of("-m", "coverage");
     public boolean coveragePyUseModule = false;
 
     public static PycharmCoverageProjectSettings getInstance(Project project) {
