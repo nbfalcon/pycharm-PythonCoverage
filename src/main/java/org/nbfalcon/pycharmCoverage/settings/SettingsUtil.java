@@ -11,4 +11,8 @@ public class SettingsUtil {
         baseArgs.addAll(Arrays.asList(args));
         return new ProcessBuilder(baseArgs);
     }
+
+    public static boolean shellArgsIsBlank(String baseCommandLine) {
+        return !ShellArgumentTokenizer.tokenize(baseCommandLine).isEmpty();
+    }
 }

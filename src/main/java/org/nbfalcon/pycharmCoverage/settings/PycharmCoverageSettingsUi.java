@@ -32,10 +32,10 @@ public class PycharmCoverageSettingsUi extends CoverageOptions {
         this.myProject = project;
     }
 
-    private static @Nullable
-    String getTextNull(TextFieldWithBrowseButton field) {
+    @Nullable
+    private static String getArgsTextNull(TextFieldWithBrowseButton field) {
         final String text = field.getText();
-        return text.isBlank() ? null : text;
+        return text.isBlank() || SettingsUtil.shellArgsIsBlank(text) ? null : text;
     }
 
     private static void setTextNull(TextFieldWithBrowseButton field, @Nullable String text) {
@@ -50,7 +50,6 @@ public class PycharmCoverageSettingsUi extends CoverageOptions {
         mainPanel.setLayout(layout);
 
         coveragePyReporterPythonCommand = new TextFieldWithBrowseButton();
-        // FIXME: What if wrong/empty (e.g. '"')
         ((JBTextField) coveragePyReporterPythonCommand.getTextField()).getEmptyText().setText("python");
         coveragePyReporterPythonCommand.addBrowseFolderListener(
                 "Select Executable",
@@ -62,7 +61,7 @@ public class PycharmCoverageSettingsUi extends CoverageOptions {
         coveragePyModule = new TextFieldWithBrowseButton();
         ((JBTextField) coveragePyModule.getTextField()).getEmptyText().setText("-m coverage");
         coveragePyModule.addBrowseFolderListener(
-                "Select Python File",
+                PycharmCoverageBundle.message("settings.selectPythonFile"),
                 null, myProject,
                 FileChooserDescriptorFactory.createSingleFileDescriptor(PythonFileType.INSTANCE));
         branchCoverage = new JBCheckBox(PycharmCoverageBundle.message("settings.measureBranchCoverage"));
@@ -90,8 +89,8 @@ public class PycharmCoverageSettingsUi extends CoverageOptions {
 
         final boolean unmodified = project.coveragePyUseModule == coveragePyUseModule.isSelected()
                 && project.enableBranchCoverage == branchCoverage.isSelected()
-                && Objects.equals(application.coveragePyLoaderPythonCommand, getTextNull(coveragePyReporterPythonCommand))
-                && Objects.equals(project.coveragePyModule, getTextNull(coveragePyModule));
+                && Objects.equals(application.coveragePyLoaderPythonCommand, getArgsTextNull(coveragePyReporterPythonCommand))
+                && Objects.equals(project.coveragePyModule, getArgsTextNull(coveragePyModule));
         return !unmodified;
     }
 
@@ -100,8 +99,8 @@ public class PycharmCoverageSettingsUi extends CoverageOptions {
         final PycharmCoverageApplicationSettings application = PycharmCoverageApplicationSettings.getInstance();
         final PycharmCoverageProjectSettings project = PycharmCoverageProjectSettings.getInstance(myProject);
 
-        application.coveragePyLoaderPythonCommand = getTextNull(coveragePyReporterPythonCommand);
-        project.coveragePyModule = getTextNull(coveragePyModule);
+        application.coveragePyLoaderPythonCommand = getArgsTextNull(coveragePyReporterPythonCommand);
+        project.coveragePyModule = getArgsTextNull(coveragePyModule);
         project.coveragePyUseModule = coveragePyUseModule.isSelected();
         project.enableBranchCoverage = branchCoverage.isSelected();
     }

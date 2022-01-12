@@ -24,7 +24,6 @@ import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.nbfalcon.pycharmCoverage.settings.PycharmCoverageProjectSettings;
-import org.nbfalcon.pycharmCoverage.util.ShellArgumentTokenizer;
 
 import java.io.File;
 

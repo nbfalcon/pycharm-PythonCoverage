@@ -27,7 +27,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * This software is Open Source Initiative approved Open Source Software.
- * Open Source Initative Approved is a trademark of the Open Source Initiative.
+ * Open Source Initiative Approved is a trademark of the Open Source Initiative.
  *
  * This file is part of DrJava.  Download the current version of this project
  * from http://www.drjava.org/ or http://sourceforge.net/projects/drjava/
@@ -35,7 +35,9 @@
  * END_COPYRIGHT_BLOCK*/
 
 // Source: https://sourceforge.net/p/drjava/git_repo/ci/master/tree/drjava/src/edu/rice/cs/util/ArgumentTokenizer.java
-// Changes: class renamed (original: ArgumentTokenizer), package changed, formatted with IntelliJ
+// Changes:
+// - class renamed (original: ArgumentTokenizer), package name changed
+// - formatted with IntelliJ, fixed some IntelliJ warnings
 
 package org.nbfalcon.pycharmCoverage.util;
 
@@ -72,12 +74,12 @@ public abstract class ShellArgumentTokenizer {
      * Tokenizes the given String into String tokens.
      *
      * @param arguments A String containing one or more command-line style arguments to be tokenized.
-     * @param stringify whether or not to include escape special characters
+     * @param stringify whether to include escape special characters
      * @return A list of parsed and properly escaped arguments.
      */
     public static List<String> tokenize(String arguments, boolean stringify) {
 
-        LinkedList<String> argList = new LinkedList<String>();
+        LinkedList<String> argList = new LinkedList<>();
         StringBuilder currArg = new StringBuilder();
         boolean escaped = false;
         int state = NO_TOKEN_STATE;  // start in the NO_TOKEN_STATE
