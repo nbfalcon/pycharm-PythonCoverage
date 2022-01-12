@@ -1,17 +1,22 @@
 package org.nbfalcon.pycharmCoverage.settings;
 
 import com.intellij.coverage.CoverageOptions;
+import com.intellij.openapi.fileChooser.FileChooserDescriptor;
+import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
+import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.TextComponentAccessor;
+import com.intellij.openapi.ui.TextFieldWithBrowseButton;
 import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBTextField;
+import com.jetbrains.python.PythonFileType;
 import net.miginfocom.swing.MigLayout;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.swing.*;
-import javax.swing.text.JTextComponent;
 import java.awt.event.ItemListener;
 import java.util.Objects;
 
@@ -19,13 +24,23 @@ public class PycharmCoverageSettingsUi extends CoverageOptions {
     private final @NotNull Project myProject;
 
     // UI
-    private JBTextField coveragePyReporterPythonCommand;
+    private TextFieldWithBrowseButton coveragePyReporterPythonCommand;
     private JBCheckBox coveragePyUseModule;
-    private JBTextField coveragePyModule;
+    private TextFieldWithBrowseButton coveragePyModule;
     private JBCheckBox branchCoverage;
 
     public PycharmCoverageSettingsUi(@NotNull Project project) {
         this.myProject = project;
+    }
+
+    private static @Nullable
+    String getTextNull(TextFieldWithBrowseButton field) {
+        final String text = field.getText();
+        return text.isBlank() ? null : text;
+    }
+
+    private static void setTextNull(TextFieldWithBrowseButton field, @Nullable String text) {
+        field.setText(text == null ? "" : text);
     }
 
     @Override
@@ -35,11 +50,21 @@ public class PycharmCoverageSettingsUi extends CoverageOptions {
         MigLayout layout = new MigLayout("gap rel 0");
         mainPanel.setLayout(layout);
 
-        coveragePyReporterPythonCommand = new JBTextField();
-        coveragePyReporterPythonCommand.getEmptyText().setText("python");
+        coveragePyReporterPythonCommand = new TextFieldWithBrowseButton();
+        ((JBTextField) coveragePyReporterPythonCommand.getTextField()).getEmptyText().setText("python");
+        coveragePyReporterPythonCommand.addBrowseFolderListener(
+                "Select Executable",
+                null, myProject,
+                FileChooserDescriptorFactory.createSingleFileOrExecutableAppDescriptor(),
+                TextComponentAccessor.TEXT_FIELD_WHOLE_TEXT);
+
         coveragePyUseModule = new JBCheckBox("Use custom module:");
-        coveragePyModule = new JBTextField();
-        coveragePyModule.getEmptyText().setText("-m coverage");
+        coveragePyModule = new TextFieldWithBrowseButton();
+        ((JBTextField) coveragePyModule.getTextField()).getEmptyText().setText("-m coverage");
+        coveragePyModule.addBrowseFolderListener(
+                "Select Python File",
+                null, myProject,
+                FileChooserDescriptorFactory.createSingleFileDescriptor(PythonFileType.INSTANCE));
         branchCoverage = new JBCheckBox("Measure branch coverage (if-else)");
 
         mainPanel.setBorder(IdeBorderFactory.createTitledBorder("Python Coverage"));
@@ -49,9 +74,8 @@ public class PycharmCoverageSettingsUi extends CoverageOptions {
         mainPanel.add(coveragePyModule, "wrap, pushx, growx");
         mainPanel.add(branchCoverage, "wrap");
 
-        final ItemListener coveragePyEnableModuleListener = (ignored) -> {
-            coveragePyModule.setEnabled(coveragePyUseModule.isSelected());
-        };
+        final ItemListener coveragePyEnableModuleListener =
+                (ignored) -> coveragePyModule.setEnabled(coveragePyUseModule.isSelected());
         coveragePyUseModule.addItemListener(coveragePyEnableModuleListener);
         coveragePyEnableModuleListener.itemStateChanged(null);
 
@@ -69,15 +93,6 @@ public class PycharmCoverageSettingsUi extends CoverageOptions {
                 && Objects.equals(application.coveragePyLoaderPythonCommand, getTextNull(coveragePyReporterPythonCommand))
                 && Objects.equals(project.coveragePyModule, getTextNull(coveragePyModule));
         return !unmodified;
-    }
-
-    private static @Nullable String getTextNull(JTextComponent field) {
-        final String text = field.getText();
-        return text.isBlank() ? null : text;
-    }
-
-    private static void setTextNull(JTextComponent field, @Nullable String text) {
-        field.setText(text == null ? "" : text);
     }
 
     @Override
