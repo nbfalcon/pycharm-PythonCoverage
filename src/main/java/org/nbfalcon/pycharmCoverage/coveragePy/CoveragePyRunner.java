@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonParseException;
 import com.intellij.coverage.CoverageEngine;
 import com.intellij.coverage.CoverageRunner;
 import com.intellij.coverage.CoverageSuite;
+import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.rt.coverage.data.ClassData;
 import com.intellij.rt.coverage.data.LineCoverage;
@@ -12,8 +13,10 @@ import com.intellij.rt.coverage.data.ProjectData;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.nbfalcon.pycharmCoverage.i18n.PycharmCoverageBundle;
 import org.nbfalcon.pycharmCoverage.settings.PycharmCoverageApplicationSettings;
 import org.nbfalcon.pycharmCoverage.settings.SettingsUtil;
+import org.nbfalcon.pycharmCoverage.util.ideaUtil.InterruptableModalTask;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -78,17 +81,17 @@ public class CoveragePyRunner extends CoverageRunner {
         return result;
     }
 
-    @Override
-    public @Nullable ProjectData loadCoverageData(@NotNull File sessionDataFile, @Nullable CoverageSuite baseCoverageSuite) {
+    @Nullable
+    private static ProjectData loadCoverageDataSync(@NotNull File sessionDataFile) {
         try {
             // FIXME: on error: show a balloon and somehow allow the user to restart
             final ProcessBuilder builder = SettingsUtil.createProcess(
                     PycharmCoverageApplicationSettings.getInstance().getCoveragePyLoaderPythonCommand(),
                     "-m", "coverage", "xml",
-                    "-c", sessionDataFile.getAbsolutePath(),
-                    "-o", "-");
+                    "-c", sessionDataFile.getAbsolutePath(), "-o", "-");
             final Process process = builder.start();
-            process.waitFor(); // FIXME: timeout + error (see rust)
+            // DEBUG: Thread.sleep(10000);
+            process.waitFor();
             InputStream input = process.getInputStream();
             BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
             final CoveragePyLoaderXML.CoverageOutput data = CoveragePyLoaderXML.loadFromXML(reader);
@@ -97,26 +100,42 @@ public class CoveragePyRunner extends CoverageRunner {
                 return null;
             }
             return loadCoverageOutput(data);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             // Handle "No data to report." (printed to stdout for some reason)
             if (e instanceof JsonParseException && e.getMessage().startsWith("Unexpected character 'N'")) return null;
             // FIXME: error dialog
             LOG.warn(e);
             return null;
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
+            // NOTE: null means nothing new to contribute, but the coverage window may still pop up, contains the old
+            // coverage data. This is not a bug in the plugin, maybe in IDEA (but probably not).
             return null;
         }
     }
 
     @Override
-    public @NotNull @NonNls String getPresentableName() {
+    @Nullable
+    public ProjectData loadCoverageData(@NotNull File sessionDataFile, @Nullable CoverageSuite baseCoverageSuite) {
+        if (ApplicationManager.getApplication().isDispatchThread()) {
+            return InterruptableModalTask.runSyncForResult(
+                    baseCoverageSuite == null ? null : baseCoverageSuite.getProject(),
+                    PycharmCoverageBundle.message("loader.progressTitle"),
+                    () -> loadCoverageDataSync(sessionDataFile));
+        }
+        return loadCoverageDataSync(sessionDataFile);
+    }
+
+    @Override
+    public @NotNull
+    @NonNls
+    String getPresentableName() {
         return "Coverage.py";
     }
 
     @Override
-    public @NotNull @NonNls String getId() {
+    public @NotNull
+    @NonNls
+    String getId() {
         return "CoveragePyRunner";
     }
 
