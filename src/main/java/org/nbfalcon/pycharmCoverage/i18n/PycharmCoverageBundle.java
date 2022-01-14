@@ -6,6 +6,8 @@ import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.PropertyKey;
 
+import java.util.function.Supplier;
+
 public class PycharmCoverageBundle extends DynamicBundle {
     public static final PycharmCoverageBundle INSTANCE = new PycharmCoverageBundle();
     @NonNls
@@ -16,7 +18,15 @@ public class PycharmCoverageBundle extends DynamicBundle {
     }
 
     @NotNull
-    public static @Nls String message(@NotNull @PropertyKey(resourceBundle = BUNDLE) String key, Object @NotNull ... params) {
+    public static @Nls
+    String message(@NotNull @PropertyKey(resourceBundle = BUNDLE) String key, @NotNull Object... params) {
         return INSTANCE.getMessage(key, params);
+    }
+
+    @NotNull
+    public static @Nls
+    Supplier<String> messageLazy(@NotNull @PropertyKey(resourceBundle = BUNDLE) String key,
+                                 @NotNull Object... params) {
+        return INSTANCE.getLazyMessage(key, params);
     }
 }

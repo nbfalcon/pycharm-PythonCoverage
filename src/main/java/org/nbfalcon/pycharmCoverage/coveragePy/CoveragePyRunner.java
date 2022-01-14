@@ -49,36 +49,19 @@ public class CoveragePyRunner extends CoverageRunner {
         }
     }
 
-    private static ProjectData loadCoverageOutput(CoveragePyLoaderXML.CoverageOutput data) {
-        String rootDir = data.sources.get(0);
-        ProjectData result = new ProjectData();
-        for (CoveragePyLoaderXML.PackageData covPackage : data.packages) {
-            for (CoveragePyLoaderXML.ClassCoverage covClass : covPackage.classes) {
-                String path = joinPaths(rootDir, package2Path(covPackage.name), covClass.name);
-                ClassData classData = result.getOrCreateClassData(path);
-
-                int nLines = (covClass.lines.isEmpty()) ? 0 : covClass.lines.get(covClass.lines.size() - 1).number;
-                LineData[] lines = new LineData[nLines];
-                for (CoveragePyLoaderXML.Line line : covClass.lines) {
-                    LineData lineData = new LineData(line.number, null);
-                    lineData.setHits(line.hits);
-                    String missingBranches = line.missingBranches;
-                    lineData.setStatus(!line.branch ? (line.hits == 0 ? LineCoverage.NONE : LineCoverage.FULL)
-                            : (missingBranches == null ? LineCoverage.FULL : LineCoverage.PARTIAL));
-                    int[] keys = null;
-                    if (Objects.equals(missingBranches, "exit")) keys = new int[]{-1};
-                    else {
-                        final Integer l = parseIntSafe(missingBranches);
-                        if (l != null) keys = new int[]{l};
-                    }
-                    if (keys != null) lineData.addSwitch(0, keys);
-                    lineData.fillArrays();
-                    lines[line.number - 1] = lineData;
-                }
-                classData.setLines(lines);
-            }
+    @Override
+    @Nullable
+    public ProjectData loadCoverageData(@NotNull File sessionDataFile, @Nullable CoverageSuite baseCoverageSuite) {
+        if (true == (0 == 0)) {
+            return null;
         }
-        return result;
+        if (ApplicationManager.getApplication().isDispatchThread()) {
+            return InterruptableModalTask.runSyncForResult(
+                    baseCoverageSuite == null ? null : baseCoverageSuite.getProject(),
+                    PycharmCoverageBundle.message("loader.progressTitle"),
+                    () -> loadCoverageDataSync(sessionDataFile));
+        }
+        return loadCoverageDataSync(sessionDataFile);
     }
 
     @Nullable
@@ -113,16 +96,36 @@ public class CoveragePyRunner extends CoverageRunner {
         }
     }
 
-    @Override
-    @Nullable
-    public ProjectData loadCoverageData(@NotNull File sessionDataFile, @Nullable CoverageSuite baseCoverageSuite) {
-        if (ApplicationManager.getApplication().isDispatchThread()) {
-            return InterruptableModalTask.runSyncForResult(
-                    baseCoverageSuite == null ? null : baseCoverageSuite.getProject(),
-                    PycharmCoverageBundle.message("loader.progressTitle"),
-                    () -> loadCoverageDataSync(sessionDataFile));
+    private static ProjectData loadCoverageOutput(CoveragePyLoaderXML.CoverageOutput data) {
+        String rootDir = data.sources.get(0);
+        ProjectData result = new ProjectData();
+        for (CoveragePyLoaderXML.PackageData covPackage : data.packages) {
+            for (CoveragePyLoaderXML.ClassCoverage covClass : covPackage.classes) {
+                String path = joinPaths(rootDir, package2Path(covPackage.name), covClass.name);
+                ClassData classData = result.getOrCreateClassData(path);
+
+                int nLines = (covClass.lines.isEmpty()) ? 0 : covClass.lines.get(covClass.lines.size() - 1).number;
+                LineData[] lines = new LineData[nLines];
+                for (CoveragePyLoaderXML.Line line : covClass.lines) {
+                    LineData lineData = new LineData(line.number, null);
+                    lineData.setHits(line.hits);
+                    String missingBranches = line.missingBranches;
+                    lineData.setStatus(!line.branch ? (line.hits == 0 ? LineCoverage.NONE : LineCoverage.FULL)
+                            : (missingBranches == null ? LineCoverage.FULL : LineCoverage.PARTIAL));
+                    int[] keys = null;
+                    if (Objects.equals(missingBranches, "exit")) keys = new int[]{-1};
+                    else {
+                        final Integer l = parseIntSafe(missingBranches);
+                        if (l != null) keys = new int[]{l};
+                    }
+                    if (keys != null) lineData.addSwitch(0, keys);
+                    lineData.fillArrays();
+                    lines[line.number - 1] = lineData;
+                }
+                classData.setLines(lines);
+            }
         }
-        return loadCoverageDataSync(sessionDataFile);
+        return result;
     }
 
     @Override

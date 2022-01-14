@@ -17,6 +17,19 @@ public class PycharmCoverageProjectSettings implements PersistentStateComponent<
     public String coveragePyModule = null;
     public boolean coveragePyUseModule = false;
 
+    public boolean enableBranchCoverage = false;
+
+    /**
+     * Make the Coverage tool window only display files included in coverage.
+     */
+    public boolean coverageViewFilterIncluded = false;
+
+    public List<String> getCoveragePyModuleArgs() {
+        return coveragePyModule != null
+                ? ShellArgumentTokenizer.tokenize(coveragePyModule)
+                : M_COVERAGE;
+    }
+
     public static PycharmCoverageProjectSettings getInstance(Project project) {
         return project.getService(PycharmCoverageProjectSettings.class);
     }
@@ -25,17 +38,10 @@ public class PycharmCoverageProjectSettings implements PersistentStateComponent<
     public PycharmCoverageProjectSettings getState() {
         return this;
     }
-    public boolean enableBranchCoverage = false;
 
     @Override
     public void loadState(@NotNull PycharmCoverageProjectSettings state) {
         this.coveragePyModule = state.coveragePyModule;
         this.coveragePyUseModule = state.coveragePyUseModule;
-    }
-
-    public List<String> getCoveragePyModuleArgs() {
-        return coveragePyModule != null
-                ? ShellArgumentTokenizer.tokenize(coveragePyModule)
-                : M_COVERAGE;
     }
 }
