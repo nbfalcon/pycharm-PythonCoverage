@@ -24,6 +24,14 @@ public class PythonCoverageProjectSettings implements PersistentStateComponent<P
      */
     public boolean coverageViewFilterIncluded = false;
 
+    @Override
+    public void loadState(@NotNull PythonCoverageProjectSettings state) {
+        this.coveragePyModule = state.coveragePyModule;
+        this.coveragePyUseModule = state.coveragePyUseModule;
+        this.enableBranchCoverage = state.enableBranchCoverage;
+        this.coverageViewFilterIncluded = state.coverageViewFilterIncluded;
+    }
+
     public List<String> getCoveragePyModuleArgs() {
         return coveragePyModule != null
                 ? ShellArgumentTokenizer.tokenize(coveragePyModule)
@@ -37,11 +45,5 @@ public class PythonCoverageProjectSettings implements PersistentStateComponent<P
     @Override
     public PythonCoverageProjectSettings getState() {
         return this;
-    }
-
-    @Override
-    public void loadState(@NotNull PythonCoverageProjectSettings state) {
-        this.coveragePyModule = state.coveragePyModule;
-        this.coveragePyUseModule = state.coveragePyUseModule;
     }
 }

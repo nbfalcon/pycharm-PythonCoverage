@@ -13,6 +13,6 @@ public class SettingsUtil {
     }
 
     public static boolean shellArgsIsBlank(String baseCommandLine) {
-        return !ShellArgumentTokenizer.tokenize(baseCommandLine).isEmpty();
+        return ShellArgumentTokenizer.tokenize(baseCommandLine).isEmpty();
     }
 }

@@ -60,10 +60,11 @@ public class CoveragePyProgramRunner implements ProgramRunner<RunnerSettings> {
         final AbstractPythonRunConfiguration<?> conf = (AbstractPythonRunConfiguration<?>) profile;
         final CoverageEnabledConfiguration covConf = CoverageEnabledConfiguration.getOrCreate(conf);
 
-        // FIXME: don't use submit
         final Project project = environment.getProject();
+        // - intellij-rust also uses startRunProfile()
+        // - We need submit() for saveAllDocuments()
         ExecutionManager.getInstance(project).startRunProfile(environment, () -> AppUIExecutor.onUiThread().submit(() -> {
-            // PyDebugRunner also does this for some reason
+            // NOTE: PyDebugRunner also does this for some reason
             FileDocumentManager.getInstance().saveAllDocuments();
             final PythonCommandLineState statePy = (PythonCommandLineState) state;
             final ExecutionResult result;

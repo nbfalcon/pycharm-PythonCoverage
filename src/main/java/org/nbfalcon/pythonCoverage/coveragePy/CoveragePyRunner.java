@@ -2,10 +2,17 @@ package org.nbfalcon.pythonCoverage.coveragePy;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.intellij.coverage.CoverageEngine;
+import com.intellij.coverage.CoverageOptionsConfigurable;
 import com.intellij.coverage.CoverageRunner;
 import com.intellij.coverage.CoverageSuite;
+import com.intellij.icons.AllIcons;
+import com.intellij.notification.Notification;
+import com.intellij.notification.NotificationAction;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.options.ShowSettingsUtil;
+import com.intellij.openapi.project.Project;
 import com.intellij.rt.coverage.data.ClassData;
 import com.intellij.rt.coverage.data.LineCoverage;
 import com.intellij.rt.coverage.data.LineData;
@@ -49,32 +56,17 @@ public class CoveragePyRunner extends CoverageRunner {
         }
     }
 
-    @Override
     @Nullable
-    public ProjectData loadCoverageData(@NotNull File sessionDataFile, @Nullable CoverageSuite baseCoverageSuite) {
-        if (true == (0 == 0)) {
-            return null;
-        }
-        if (ApplicationManager.getApplication().isDispatchThread()) {
-            return InterruptableModalTask.runSyncForResult(
-                    baseCoverageSuite == null ? null : baseCoverageSuite.getProject(),
-                    PythonCoverageBundle.message("loader.progressTitle"),
-                    () -> loadCoverageDataSync(sessionDataFile));
-        }
-        return loadCoverageDataSync(sessionDataFile);
-    }
-
-    @Nullable
-    private static ProjectData loadCoverageDataSync(@NotNull File sessionDataFile) {
+    private static ProjectData loadCoverageDataSync(@NotNull File sessionDataFile,
+                                                    @Nullable Project projectForWarnings) {
         try {
-            // FIXME: on error: show a balloon and somehow allow the user to restart
             final ProcessBuilder builder = SettingsUtil.createProcess(
                     PythonCoverageApplicationSettings.getInstance().getCoveragePyLoaderPythonCommand(),
                     "-m", "coverage", "xml",
                     "-c", sessionDataFile.getAbsolutePath(), "-o", "-");
             final Process process = builder.start();
             // DEBUG: Thread.sleep(10000);
-            process.waitFor();
+            process.waitFor(); // Allow interrupt() via cancel
             InputStream input = process.getInputStream();
             BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
             final CoveragePyLoaderXML.CoverageOutput data = CoveragePyLoaderXML.loadFromXML(reader);
@@ -85,15 +77,47 @@ public class CoveragePyRunner extends CoverageRunner {
             return loadCoverageOutput(data);
         } catch (IOException e) {
             // Handle "No data to report." (printed to stdout for some reason)
-            if (e instanceof JsonParseException && e.getMessage().startsWith("Unexpected character 'N'")) return null;
-            // FIXME: error dialog
+            if (e instanceof JsonParseException && e.getMessage().startsWith("Unexpected character 'N'")) {
+                return null;
+            } else if (e.getMessage().startsWith("Cannot run program")) {
+                showNotFoundLoaderExecutableBalloon(projectForWarnings);
+            }
             LOG.warn(e);
-            return null;
-        } catch (InterruptedException e) {
-            // NOTE: null means nothing new to contribute, but the coverage window may still pop up, contains the old
-            // coverage data. This is not a bug in the plugin, maybe in IDEA (but probably not).
-            return null;
+        } catch (InterruptedException ignored) {
         }
+        // NOTE: null means nothing new to contribute, but the coverage window may still pop up, contains the old
+        // coverage data. This is not a bug in the plugin, maybe in IDEA (but probably not).
+        return null;
+    }
+
+    private static void showNotFoundLoaderExecutableBalloon(@Nullable Project projectForNotification) {
+        new Notification("",
+                PythonCoverageBundle.message("loader.loaderExecutableNotFound"), NotificationType.ERROR)
+                .setDisplayId("pythonCoverage.coveragePyRunner.loaderExecutableNotFound")
+                .setIcon(AllIcons.RunConfigurations.TrackCoverage)
+                .addAction(NotificationAction.create(PythonCoverageBundle.message("loader.executableNotFoundConfigure"),
+                        (event, notification) -> {
+                            final Project project = event.getProject();
+                            if (project != null) showCoverageSettings(project);
+                        }))
+                .notify(projectForNotification);
+    }
+
+    private static void showCoverageSettings(@NotNull Project project) {
+        ShowSettingsUtil.getInstance().showSettingsDialog(project, CoverageOptionsConfigurable.class);
+    }
+
+    @Override
+    @Nullable
+    public ProjectData loadCoverageData(@NotNull File sessionDataFile, @Nullable CoverageSuite baseCoverageSuite) {
+        final @Nullable Project project = baseCoverageSuite == null ? null : baseCoverageSuite.getProject();
+        if (ApplicationManager.getApplication().isDispatchThread()) {
+            return InterruptableModalTask.runSyncForResult(
+                    project,
+                    PythonCoverageBundle.message("loader.progressTitle"),
+                    () -> loadCoverageDataSync(sessionDataFile, project));
+        }
+        return loadCoverageDataSync(sessionDataFile, project);
     }
 
     private static ProjectData loadCoverageOutput(CoveragePyLoaderXML.CoverageOutput data) {

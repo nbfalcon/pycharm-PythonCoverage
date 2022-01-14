@@ -57,7 +57,7 @@ public class PythonCoverageSettingsUi extends CoverageOptions {
                 FileChooserDescriptorFactory.createSingleFileOrExecutableAppDescriptor(),
                 TextComponentAccessor.TEXT_FIELD_WHOLE_TEXT);
 
-        coveragePyUseModule = new JBCheckBox("Use custom module:");
+        coveragePyUseModule = new JBCheckBox(PythonCoverageBundle.message("settings.coveragePyUseCustomModule"));
         coveragePyModule = new TextFieldWithBrowseButton();
         ((JBTextField) coveragePyModule.getTextField()).getEmptyText().setText("-m coverage");
         coveragePyModule.addBrowseFolderListener(
@@ -67,7 +67,7 @@ public class PythonCoverageSettingsUi extends CoverageOptions {
         branchCoverage = new JBCheckBox(PythonCoverageBundle.message("settings.measureBranchCoverage"));
 
         mainPanel.setBorder(IdeBorderFactory.createTitledBorder(PythonCoverageBundle.message("settings.borderTitle")));
-        mainPanel.add(new JBLabel(PythonCoverageBundle.message("settings.reporterPythonCommand")));
+        mainPanel.add(new JBLabel(PythonCoverageBundle.message("settings.coveragePyReporterPythonCommand")));
         mainPanel.add(coveragePyReporterPythonCommand, "wrap, pushx, growx");
         mainPanel.add(coveragePyUseModule);
         mainPanel.add(coveragePyModule, "wrap, pushx, growx");
