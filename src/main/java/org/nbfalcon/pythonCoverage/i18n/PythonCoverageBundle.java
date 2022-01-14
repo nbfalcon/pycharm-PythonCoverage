@@ -1,4 +1,4 @@
-package org.nbfalcon.pycharmCoverage.i18n;
+package org.nbfalcon.pythonCoverage.i18n;
 
 import com.intellij.DynamicBundle;
 import org.jetbrains.annotations.Nls;
@@ -8,12 +8,12 @@ import org.jetbrains.annotations.PropertyKey;
 
 import java.util.function.Supplier;
 
-public class PycharmCoverageBundle extends DynamicBundle {
-    public static final PycharmCoverageBundle INSTANCE = new PycharmCoverageBundle();
+public class PythonCoverageBundle extends DynamicBundle {
+    public static final PythonCoverageBundle INSTANCE = new PythonCoverageBundle();
     @NonNls
-    public static final String BUNDLE = "PycharmCoverage";
+    public static final String BUNDLE = "PythonCoverage";
 
-    private PycharmCoverageBundle() {
+    private PythonCoverageBundle() {
         super(BUNDLE);
     }
 

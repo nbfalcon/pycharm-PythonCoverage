@@ -1,4 +1,4 @@
-package org.nbfalcon.pycharmCoverage.util.swing;
+package org.nbfalcon.pythonCoverage.util.swing;
 
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;

@@ -1,4 +1,4 @@
-package org.nbfalcon.pycharmCoverage.util.ideaUtil;
+package org.nbfalcon.pythonCoverage.util.ideaUtil;
 
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
@@ -9,7 +9,7 @@ import com.intellij.openapi.util.NlsContexts;
 import com.intellij.openapi.wm.ex.ProgressIndicatorEx;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.nbfalcon.pycharmCoverage.util.ThrowingCallable;
+import org.nbfalcon.pythonCoverage.util.ThrowingCallable;
 
 import java.util.concurrent.atomic.AtomicReference;
 

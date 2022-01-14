@@ -1,6 +1,6 @@
-package org.nbfalcon.pycharmCoverage.settings;
+package org.nbfalcon.pythonCoverage.settings;
 
-import org.nbfalcon.pycharmCoverage.util.ShellArgumentTokenizer;
+import org.nbfalcon.pythonCoverage.util.ShellArgumentTokenizer;
 
 import java.util.Arrays;
 import java.util.List;

@@ -1,4 +1,4 @@
-package org.nbfalcon.pycharmCoverage.coveragePy;
+package org.nbfalcon.pythonCoverage.coveragePy;
 
 import com.intellij.execution.configurations.RunConfigurationBase;
 import com.intellij.execution.configurations.coverage.CoverageEnabledConfiguration;

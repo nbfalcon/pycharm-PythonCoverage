@@ -39,7 +39,7 @@
 // - class renamed (original: ArgumentTokenizer), package name changed
 // - formatted with IntelliJ, fixed some IntelliJ warnings
 
-package org.nbfalcon.pycharmCoverage.util;
+package org.nbfalcon.pythonCoverage.util;
 
 import java.util.LinkedList;
 import java.util.List;

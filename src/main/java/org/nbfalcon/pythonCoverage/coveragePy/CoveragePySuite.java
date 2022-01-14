@@ -1,4 +1,4 @@
-package org.nbfalcon.pycharmCoverage.coveragePy;
+package org.nbfalcon.pythonCoverage.coveragePy;
 
 import com.intellij.coverage.BaseCoverageSuite;
 import com.intellij.coverage.CoverageEngine;

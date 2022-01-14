@@ -1,4 +1,4 @@
-package org.nbfalcon.pycharmCoverage.coveragePy;
+package org.nbfalcon.pythonCoverage.coveragePy;
 
 import com.intellij.coverage.CoverageExecutor;
 import com.intellij.coverage.CoverageHelper;
@@ -23,7 +23,7 @@ import com.jetbrains.python.run.PythonCommandLineState;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.nbfalcon.pycharmCoverage.settings.PycharmCoverageProjectSettings;
+import org.nbfalcon.pythonCoverage.settings.PythonCoverageProjectSettings;
 
 import java.io.File;
 
@@ -70,7 +70,7 @@ public class CoveragePyProgramRunner implements ProgramRunner<RunnerSettings> {
             try {
                 result = statePy.execute(environment.getExecutor(),
                         createPatchers(environment, statePy, covConf.getCoverageFilePath(),
-                                PycharmCoverageProjectSettings.getInstance(project)));
+                                PythonCoverageProjectSettings.getInstance(project)));
             } catch (ExecutionException e) {
                 throw new RuntimeException(e);
             }
@@ -90,13 +90,13 @@ public class CoveragePyProgramRunner implements ProgramRunner<RunnerSettings> {
     private CommandLinePatcher[] createPatchers(@NotNull ExecutionEnvironment environment,
                                                 PythonCommandLineState statePy,
                                                 @Nullable @NonNls String outputPath,
-                                                PycharmCoverageProjectSettings settings) {
+                                                PythonCoverageProjectSettings settings) {
         return new CommandLinePatcher[]{
                 PyDebugRunner.createRunConfigPatcher(statePy, environment.getRunProfile()),
                 createCoveragePyPatcher(outputPath, settings)};
     }
 
-    private CommandLinePatcher createCoveragePyPatcher(@Nullable @NonNls String outputPath, PycharmCoverageProjectSettings settings) {
+    private CommandLinePatcher createCoveragePyPatcher(@Nullable @NonNls String outputPath, PythonCoverageProjectSettings settings) {
         return generalCommandLine -> {
             final ParamsGroup coverageGroup = generalCommandLine.getParametersList().getParamsGroup(PythonCommandLineState.GROUP_COVERAGE);
             assert coverageGroup != null;

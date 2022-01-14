@@ -1,4 +1,4 @@
-package org.nbfalcon.pycharmCoverage.settings;
+package org.nbfalcon.pythonCoverage.settings;
 
 import com.intellij.coverage.CoverageOptions;
 import com.intellij.openapi.fileChooser.FileChooserDescriptorFactory;
@@ -13,13 +13,13 @@ import com.jetbrains.python.PythonFileType;
 import net.miginfocom.swing.MigLayout;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.nbfalcon.pycharmCoverage.i18n.PycharmCoverageBundle;
+import org.nbfalcon.pythonCoverage.i18n.PythonCoverageBundle;
 
 import javax.swing.*;
 import java.awt.event.ItemListener;
 import java.util.Objects;
 
-public class PycharmCoverageSettingsUi extends CoverageOptions {
+public class PythonCoverageSettingsUi extends CoverageOptions {
     private final @NotNull Project myProject;
 
     // UI
@@ -28,7 +28,7 @@ public class PycharmCoverageSettingsUi extends CoverageOptions {
     private TextFieldWithBrowseButton coveragePyModule;
     private JBCheckBox branchCoverage;
 
-    public PycharmCoverageSettingsUi(@NotNull Project project) {
+    public PythonCoverageSettingsUi(@NotNull Project project) {
         this.myProject = project;
     }
 
@@ -61,13 +61,13 @@ public class PycharmCoverageSettingsUi extends CoverageOptions {
         coveragePyModule = new TextFieldWithBrowseButton();
         ((JBTextField) coveragePyModule.getTextField()).getEmptyText().setText("-m coverage");
         coveragePyModule.addBrowseFolderListener(
-                PycharmCoverageBundle.message("settings.selectPythonFile"),
+                PythonCoverageBundle.message("settings.selectPythonFile"),
                 null, myProject,
                 FileChooserDescriptorFactory.createSingleFileDescriptor(PythonFileType.INSTANCE));
-        branchCoverage = new JBCheckBox(PycharmCoverageBundle.message("settings.measureBranchCoverage"));
+        branchCoverage = new JBCheckBox(PythonCoverageBundle.message("settings.measureBranchCoverage"));
 
-        mainPanel.setBorder(IdeBorderFactory.createTitledBorder(PycharmCoverageBundle.message("settings.borderTitle")));
-        mainPanel.add(new JBLabel(PycharmCoverageBundle.message("settings.reporterPythonCommand")));
+        mainPanel.setBorder(IdeBorderFactory.createTitledBorder(PythonCoverageBundle.message("settings.borderTitle")));
+        mainPanel.add(new JBLabel(PythonCoverageBundle.message("settings.reporterPythonCommand")));
         mainPanel.add(coveragePyReporterPythonCommand, "wrap, pushx, growx");
         mainPanel.add(coveragePyUseModule);
         mainPanel.add(coveragePyModule, "wrap, pushx, growx");
@@ -84,8 +84,8 @@ public class PycharmCoverageSettingsUi extends CoverageOptions {
 
     @Override
     public boolean isModified() {
-        final PycharmCoverageApplicationSettings application = PycharmCoverageApplicationSettings.getInstance();
-        final PycharmCoverageProjectSettings project = PycharmCoverageProjectSettings.getInstance(myProject);
+        final PythonCoverageApplicationSettings application = PythonCoverageApplicationSettings.getInstance();
+        final PythonCoverageProjectSettings project = PythonCoverageProjectSettings.getInstance(myProject);
 
         final boolean unmodified = project.coveragePyUseModule == coveragePyUseModule.isSelected()
                 && project.enableBranchCoverage == branchCoverage.isSelected()
@@ -96,8 +96,8 @@ public class PycharmCoverageSettingsUi extends CoverageOptions {
 
     @Override
     public void apply() {
-        final PycharmCoverageApplicationSettings application = PycharmCoverageApplicationSettings.getInstance();
-        final PycharmCoverageProjectSettings project = PycharmCoverageProjectSettings.getInstance(myProject);
+        final PythonCoverageApplicationSettings application = PythonCoverageApplicationSettings.getInstance();
+        final PythonCoverageProjectSettings project = PythonCoverageProjectSettings.getInstance(myProject);
 
         application.coveragePyLoaderPythonCommand = getArgsTextNull(coveragePyReporterPythonCommand);
         project.coveragePyModule = getArgsTextNull(coveragePyModule);
@@ -107,8 +107,8 @@ public class PycharmCoverageSettingsUi extends CoverageOptions {
 
     @Override
     public void reset() {
-        final PycharmCoverageApplicationSettings application = PycharmCoverageApplicationSettings.getInstance();
-        final PycharmCoverageProjectSettings project = PycharmCoverageProjectSettings.getInstance(myProject);
+        final PythonCoverageApplicationSettings application = PythonCoverageApplicationSettings.getInstance();
+        final PythonCoverageProjectSettings project = PythonCoverageProjectSettings.getInstance(myProject);
 
         setTextNull(coveragePyReporterPythonCommand, application.coveragePyLoaderPythonCommand);
         setTextNull(coveragePyModule, project.coveragePyModule);

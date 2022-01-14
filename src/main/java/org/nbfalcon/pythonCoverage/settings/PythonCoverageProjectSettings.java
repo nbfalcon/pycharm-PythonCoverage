@@ -1,4 +1,4 @@
-package org.nbfalcon.pycharmCoverage.settings;
+package org.nbfalcon.pythonCoverage.settings;
 
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.State;
@@ -6,12 +6,12 @@ import com.intellij.openapi.components.Storage;
 import com.intellij.openapi.components.StoragePathMacros;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
-import org.nbfalcon.pycharmCoverage.util.ShellArgumentTokenizer;
+import org.nbfalcon.pythonCoverage.util.ShellArgumentTokenizer;
 
 import java.util.List;
 
-@State(name = "PycharmCoverage.Settings", storages = @Storage(StoragePathMacros.WORKSPACE_FILE))
-public class PycharmCoverageProjectSettings implements PersistentStateComponent<PycharmCoverageProjectSettings> {
+@State(name = "PythonCoverage.Settings", storages = @Storage(StoragePathMacros.WORKSPACE_FILE))
+public class PythonCoverageProjectSettings implements PersistentStateComponent<PythonCoverageProjectSettings> {
     private static final List<String> M_COVERAGE = List.of("-m", "coverage");
 
     public String coveragePyModule = null;
@@ -30,17 +30,17 @@ public class PycharmCoverageProjectSettings implements PersistentStateComponent<
                 : M_COVERAGE;
     }
 
-    public static PycharmCoverageProjectSettings getInstance(Project project) {
-        return project.getService(PycharmCoverageProjectSettings.class);
+    public static PythonCoverageProjectSettings getInstance(Project project) {
+        return project.getService(PythonCoverageProjectSettings.class);
     }
 
     @Override
-    public PycharmCoverageProjectSettings getState() {
+    public PythonCoverageProjectSettings getState() {
         return this;
     }
 
     @Override
-    public void loadState(@NotNull PycharmCoverageProjectSettings state) {
+    public void loadState(@NotNull PythonCoverageProjectSettings state) {
         this.coveragePyModule = state.coveragePyModule;
         this.coveragePyUseModule = state.coveragePyUseModule;
     }

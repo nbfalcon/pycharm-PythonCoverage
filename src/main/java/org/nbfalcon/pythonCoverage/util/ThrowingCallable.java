@@ -1,4 +1,4 @@
-package org.nbfalcon.pycharmCoverage.util;
+package org.nbfalcon.pythonCoverage.util;
 
 @FunctionalInterface
 public interface ThrowingCallable<V, E extends Exception> {

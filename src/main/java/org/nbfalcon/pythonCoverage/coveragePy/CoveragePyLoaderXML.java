@@ -1,4 +1,4 @@
-package org.nbfalcon.pycharmCoverage.coveragePy;
+package org.nbfalcon.pythonCoverage.coveragePy;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.dataformat.xml.XmlMapper;

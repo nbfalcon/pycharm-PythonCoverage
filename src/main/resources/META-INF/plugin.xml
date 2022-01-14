@@ -1,10 +1,10 @@
 <idea-plugin>
-    <id>org.example.pycharm-coverage</id>
-    <name>PyCharm Coverage</name>
+    <id>org.example.python-coverage</id>
+    <name>Python Coverage</name>
     <vendor email="nikblos@outlook.com" url="http://github.com/nbfalcon">Nikita Bloshchanevich</vendor>
 
     <description><![CDATA[
-    Adds code coverage powered by [coverage.py](https://coverage.readthedocs.io/) to PyCharm community.
+    Adds coverage for python powered by [coverage.py](https://coverage.readthedocs.io/).
 ]]></description>
     <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
          on how to target different products -->
@@ -13,15 +13,15 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <!-- Add your extensions here -->
-        <programRunner implementation="org.nbfalcon.pycharmCoverage.coveragePy.CoveragePyProgramRunner"/>
-        <coverageRunner implementation="org.nbfalcon.pycharmCoverage.coveragePy.CoveragePyRunner"/>
-        <coverageEngine implementation="org.nbfalcon.pycharmCoverage.coveragePy.CoveragePyEngine"/>
+        <programRunner implementation="org.nbfalcon.pythonCoverage.coveragePy.CoveragePyProgramRunner"/>
+        <coverageRunner implementation="org.nbfalcon.pythonCoverage.coveragePy.CoveragePyRunner"/>
+        <coverageEngine implementation="org.nbfalcon.pythonCoverage.coveragePy.CoveragePyEngine"/>
 
-        <projectService serviceImplementation="org.nbfalcon.pycharmCoverage.coveragePy.CoveragePyAnnotator"/>
+        <projectService serviceImplementation="org.nbfalcon.pythonCoverage.coveragePy.CoveragePyAnnotator"/>
 
-        <projectService serviceImplementation="org.nbfalcon.pycharmCoverage.settings.PycharmCoverageProjectSettings"/>
-        <applicationService serviceImplementation="org.nbfalcon.pycharmCoverage.settings.PycharmCoverageApplicationSettings"/>
-        <coverageOptions implementation="org.nbfalcon.pycharmCoverage.settings.PycharmCoverageSettingsUi"/>
+        <projectService serviceImplementation="org.nbfalcon.pythonCoverage.settings.PythonCoverageProjectSettings"/>
+        <applicationService serviceImplementation="org.nbfalcon.pythonCoverage.settings.PythonCoverageApplicationSettings"/>
+        <coverageOptions implementation="org.nbfalcon.pythonCoverage.settings.PythonCoverageSettingsUi"/>
     </extensions>
 
     <actions>

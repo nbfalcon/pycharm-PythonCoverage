@@ -1,4 +1,4 @@
-package org.nbfalcon.pycharmCoverage.coveragePy;
+package org.nbfalcon.pythonCoverage.coveragePy;
 
 import com.intellij.coverage.CoverageAnnotator;
 import com.intellij.coverage.CoverageSuitesBundle;
@@ -11,7 +11,6 @@ import com.intellij.openapi.actionSystem.ToggleAction;
 import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiFileSystemItem;
@@ -20,8 +19,8 @@ import com.intellij.util.ui.ColumnInfo;
 import com.jetbrains.python.PythonFileType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.nbfalcon.pycharmCoverage.i18n.PycharmCoverageBundle;
-import org.nbfalcon.pycharmCoverage.settings.PycharmCoverageProjectSettings;
+import org.nbfalcon.pythonCoverage.i18n.PythonCoverageBundle;
+import org.nbfalcon.pythonCoverage.settings.PythonCoverageProjectSettings;
 
 import java.awt.*;
 import java.awt.event.InputEvent;
@@ -39,11 +38,11 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
                 : !Objects.equals(node.getName(), Project.DIRECTORY_STORE_FOLDER);
     };
 
-    PycharmCoverageProjectSettings settings;
+    PythonCoverageProjectSettings settings;
 
     public CoveragePyViewExtension(Project project, CoverageAnnotator annotator, CoverageSuitesBundle suitesBundle, CoverageViewManager.StateBean stateBean) {
         super(project, annotator, suitesBundle, stateBean);
-        this.settings = PycharmCoverageProjectSettings.getInstance(project);
+        this.settings = PythonCoverageProjectSettings.getInstance(project);
     }
 
     @Override
@@ -51,7 +50,7 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
     public ColumnInfo[] createColumnInfos() {
         return new ColumnInfo[]{
                 new ElementColumnInfo(),
-                new PercentageCoverageColumnInfo(1, PycharmCoverageBundle.message("viewExtension.column.line%"), mySuitesBundle, myStateBean)};
+                new PercentageCoverageColumnInfo(1, PythonCoverageBundle.message("viewExtension.column.line%"), mySuitesBundle, myStateBean)};
     }
 
     private static boolean coveragePySupports(PsiFile file) {
@@ -81,7 +80,7 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
     public @NotNull
     List<AnAction> createExtraToolbarActions() {
         return List.of(new ToggleAction(
-                PycharmCoverageBundle.messageLazy("viewExtension.filterIncludedInCoverage")) {
+                PythonCoverageBundle.messageLazy("viewExtension.filterIncludedInCoverage")) {
             @Override
             public boolean isSelected(@NotNull AnActionEvent anActionEvent) {
                 return settings.coverageViewFilterIncluded;

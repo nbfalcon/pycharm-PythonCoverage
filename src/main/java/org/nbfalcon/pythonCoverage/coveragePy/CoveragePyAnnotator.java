@@ -1,4 +1,4 @@
-package org.nbfalcon.pycharmCoverage.coveragePy;
+package org.nbfalcon.pythonCoverage.coveragePy;
 
 import com.intellij.coverage.SimpleCoverageAnnotator;
 import com.intellij.openapi.project.Project;

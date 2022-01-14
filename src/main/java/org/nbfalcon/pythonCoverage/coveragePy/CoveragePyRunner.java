@@ -1,4 +1,4 @@
-package org.nbfalcon.pycharmCoverage.coveragePy;
+package org.nbfalcon.pythonCoverage.coveragePy;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.intellij.coverage.CoverageEngine;
@@ -13,10 +13,10 @@ import com.intellij.rt.coverage.data.ProjectData;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.nbfalcon.pycharmCoverage.i18n.PycharmCoverageBundle;
-import org.nbfalcon.pycharmCoverage.settings.PycharmCoverageApplicationSettings;
-import org.nbfalcon.pycharmCoverage.settings.SettingsUtil;
-import org.nbfalcon.pycharmCoverage.util.ideaUtil.InterruptableModalTask;
+import org.nbfalcon.pythonCoverage.i18n.PythonCoverageBundle;
+import org.nbfalcon.pythonCoverage.settings.PythonCoverageApplicationSettings;
+import org.nbfalcon.pythonCoverage.settings.SettingsUtil;
+import org.nbfalcon.pythonCoverage.util.ideaUtil.InterruptableModalTask;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -58,7 +58,7 @@ public class CoveragePyRunner extends CoverageRunner {
         if (ApplicationManager.getApplication().isDispatchThread()) {
             return InterruptableModalTask.runSyncForResult(
                     baseCoverageSuite == null ? null : baseCoverageSuite.getProject(),
-                    PycharmCoverageBundle.message("loader.progressTitle"),
+                    PythonCoverageBundle.message("loader.progressTitle"),
                     () -> loadCoverageDataSync(sessionDataFile));
         }
         return loadCoverageDataSync(sessionDataFile);
@@ -69,7 +69,7 @@ public class CoveragePyRunner extends CoverageRunner {
         try {
             // FIXME: on error: show a balloon and somehow allow the user to restart
             final ProcessBuilder builder = SettingsUtil.createProcess(
-                    PycharmCoverageApplicationSettings.getInstance().getCoveragePyLoaderPythonCommand(),
+                    PythonCoverageApplicationSettings.getInstance().getCoveragePyLoaderPythonCommand(),
                     "-m", "coverage", "xml",
                     "-c", sessionDataFile.getAbsolutePath(), "-o", "-");
             final Process process = builder.start();

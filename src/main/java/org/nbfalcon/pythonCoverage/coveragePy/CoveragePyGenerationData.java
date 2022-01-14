@@ -1,4 +1,4 @@
-package org.nbfalcon.pycharmCoverage.coveragePy;
+package org.nbfalcon.pythonCoverage.coveragePy;
 
 import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.rt.coverage.data.ClassData;
