@@ -110,6 +110,7 @@ public class CoveragePyRunner extends CoverageRunner {
     @Override
     @Nullable
     public ProjectData loadCoverageData(@NotNull File sessionDataFile, @Nullable CoverageSuite baseCoverageSuite) {
+        // if (0 == 0) return null; // STOPSHIP FIXME
         final @Nullable Project project = baseCoverageSuite == null ? null : baseCoverageSuite.getProject();
         if (ApplicationManager.getApplication().isDispatchThread()) {
             return InterruptableModalTask.runSyncForResult(

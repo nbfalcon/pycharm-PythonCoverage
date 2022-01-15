@@ -9,12 +9,12 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
 import com.intellij.openapi.actionSystem.ToggleAction;
 import com.intellij.openapi.fileTypes.FileType;
+import com.intellij.openapi.project.DumbAware;
+import com.intellij.openapi.project.DumbAwareToggleAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiFileSystemItem;
-import com.intellij.psi.PsiManager;
+import com.intellij.openapi.vfs.VirtualFileManager;
+import com.intellij.psi.*;
 import com.intellij.util.ui.ColumnInfo;
 import com.jetbrains.python.PythonFileType;
 import org.jetbrains.annotations.NotNull;
@@ -79,7 +79,7 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
     @Override
     public @NotNull
     List<AnAction> createExtraToolbarActions() {
-        return List.of(new ToggleAction(
+        return List.of(new DumbAwareToggleAction(
                 PythonCoverageBundle.messageLazy("viewExtension.filterIncludedInCoverage")) {
             @Override
             public boolean isSelected(@NotNull AnActionEvent anActionEvent) {
@@ -90,22 +90,78 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
             public void setSelected(@NotNull AnActionEvent anActionEvent, boolean b) {
                 final InputEvent ev = anActionEvent.getInputEvent();
                 if (ev != null) {
-                    final CoverageView view = getCoverageViewFromEv(ev.getSource());
+                    final CoverageView view = getCoverageViewFromEvent(ev);
                     if (view != null) {
-                        final AbstractTreeNode<?> nodeToSelect = getNodeToSelectAfterUpdate(view);
-                        settings.coverageViewFilterIncluded = b;
-                        updateTree(view, nodeToSelect);
+                        updateView(view, b);
+                        // final AbstractTreeNode<?> nodeToSelect = getNodeToSelectAfterUpdate(view);
+                        // settings.coverageViewFilterIncluded = b;
+                        // updateTree(view, nodeToSelect);
                     }
                 } else {
                     settings.coverageViewFilterIncluded = b;
                 }
             }
 
-            private CoverageView getCoverageViewFromEv(Object source) {
+            private CoverageView getCoverageViewFromEvent(InputEvent event) {
+                Object source = event.getSource();
                 while (source != null && !(source instanceof CoverageView)) {
                     source = ((Component) source).getParent();
                 }
                 return (CoverageView) source;
+            }
+
+            // HACK: this sets settings.coverageViewFilterIncluded and then causes the view to be updated. The latter
+            // involves numerous horrible hacks seem more like an exploit.
+            private void updateView(CoverageView view, boolean filterIncluded) {
+                if (!filterIncluded) {
+                    settings.coverageViewFilterIncluded = false;
+                    final AbstractTreeNode<?> selected = (AbstractTreeNode<?>) view.getData(CommonDataKeys.NAVIGATABLE.getName());
+                    if (selected != null) {
+                        view.select(((PsiFileSystemItem) selected.getValue()).getVirtualFile());
+                    } else {
+                        final String projectPath = myProject.getBasePath();
+                        if (projectPath == null) return;
+                        final VirtualFile projectDir = VirtualFileManager.getInstance().findFileByUrl("file://" + projectPath);
+                        if (projectDir == null) return;
+                        final PsiDirectory projectPsi = PsiManager.getInstance(myProject).findDirectory(projectDir);
+                        if (projectPsi == null) return;
+                        PsiFileSystemItem found = null;
+                        for (AbstractTreeNode<?> child : new CoverageListNode(myProject, projectPsi, mySuitesBundle, myStateBean).getChildren()) {
+                            if (FILTER_PYTHON_FILES.test(child)) {
+                                found = (PsiFileSystemItem) child.getValue();
+                                break;
+                            }
+                        }
+                        if (found != null) {
+                            view.select(found.getVirtualFile());
+                        }
+                    }
+                } else {
+                    AbstractTreeNode<?> selected = (AbstractTreeNode<?>) view.getData(CommonDataKeys.NAVIGATABLE.getName());
+                    final AbstractTreeNode<?> next = findNextNodeWithCoverage(selected);
+                    settings.coverageViewFilterIncluded = true;
+                    if (next != null) {
+                        if (!(next instanceof CoverageListRootNode)) {
+                            view.select(((PsiFileSystemItem) next.getValue()).getVirtualFile());
+                        } else {
+                            final CoverageListNode fakeParent = new CoverageListNode(myProject, (PsiNamedElement) next.getValue(), mySuitesBundle, myStateBean);
+                            fakeParent.setParent(next);
+                            next.setParent(fakeParent);
+                            view.goUp();
+                            next.setParent(null);
+                            view.goUp();
+                        }
+                    }
+                }
+            }
+
+            private AbstractTreeNode<?> findNextNodeWithCoverage(AbstractTreeNode<?> selected) {
+                while (selected != null && !(selected instanceof CoverageListRootNode) && !hasCoverage(selected)) {
+                    final AbstractTreeNode<?> sibling = findNextSiblingWithCoverage(selected);
+                    if (sibling != null) return sibling;
+                    selected = selected.getParent();
+                }
+                return selected;
             }
 
             @SuppressWarnings("unchecked")
@@ -130,46 +186,6 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
                     }
                 }
                 return null;
-            }
-
-            // HACK: this is horrible: we basically select the currently selected element to update the tree, which
-            // can break any time
-            // FIXME: does not work if there is no covered file and the option is turned off again
-            private void updateTree(CoverageView view, @Nullable AbstractTreeNode<?> nodeToSelect) {
-                if (nodeToSelect != null) {
-                    final Object selectedPsi = nodeToSelect.getValue();
-                    if (selectedPsi instanceof PsiFileSystemItem) {
-                        final VirtualFile file = ((PsiFileSystemItem) selectedPsi).getVirtualFile();
-                        if (file != null) {
-                            view.select(file);
-                        }
-                    }
-                }
-            }
-
-            @Nullable
-            private AbstractTreeNode<?> getNodeToSelectAfterUpdate(CoverageView view) {
-                AbstractTreeNode<?> selected = (AbstractTreeNode<?>) view.getData(CommonDataKeys.NAVIGATABLE.getName());
-                if (selected != null) {
-                    if (!hasCoverage(selected)) {
-                        // Otherwise, the parent gets selected
-                        do {
-                            final AbstractTreeNode<?> next = findNextSiblingWithCoverage(selected);
-                            if (next != null) {
-                                selected = next;
-                                break;
-                            } else {
-                                final AbstractTreeNode<?> parent = selected.getParent();
-                                selected = parent;
-                                if (parent instanceof CoverageListRootNode) {
-                                    // selected = (AbstractTreeNode<?>) ((List) parent.getChildren()).get(0);
-                                    break;
-                                }
-                            }
-                        } while (!hasCoverage(selected));
-                    }
-                }
-                return selected;
             }
         });
     }
