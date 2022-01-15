@@ -3,13 +3,12 @@ package org.nbfalcon.pythonCoverage.coveragePy;
 import com.intellij.coverage.CoverageAnnotator;
 import com.intellij.coverage.CoverageSuitesBundle;
 import com.intellij.coverage.view.*;
+import com.intellij.icons.AllIcons;
 import com.intellij.ide.util.treeView.AbstractTreeNode;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
-import com.intellij.openapi.actionSystem.ToggleAction;
 import com.intellij.openapi.fileTypes.FileType;
-import com.intellij.openapi.project.DumbAware;
 import com.intellij.openapi.project.DumbAwareToggleAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
@@ -80,7 +79,9 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
     public @NotNull
     List<AnAction> createExtraToolbarActions() {
         return List.of(new DumbAwareToggleAction(
-                PythonCoverageBundle.messageLazy("viewExtension.filterIncludedInCoverage")) {
+                PythonCoverageBundle.messageLazy("viewExtension.filterIncludedInCoverage"),
+                PythonCoverageBundle.messageLazy("viewExtension.filterIncludedInCoverageDescription"),
+                AllIcons.RunConfigurations.TrackCoverage) {
             @Override
             public boolean isSelected(@NotNull AnActionEvent anActionEvent) {
                 return settings.coverageViewFilterIncluded;
@@ -93,9 +94,6 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
                     final CoverageView view = getCoverageViewFromEvent(ev);
                     if (view != null) {
                         updateView(view, b);
-                        // final AbstractTreeNode<?> nodeToSelect = getNodeToSelectAfterUpdate(view);
-                        // settings.coverageViewFilterIncluded = b;
-                        // updateTree(view, nodeToSelect);
                     }
                 } else {
                     settings.coverageViewFilterIncluded = b;
