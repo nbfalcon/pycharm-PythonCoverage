@@ -1,5 +1,5 @@
 <idea-plugin>
-    <id>org.example.python-coverage</id>
+    <id>org.nbfalcon.python-coverage</id>
     <name>Python Coverage</name>
     <vendor email="nikblos@outlook.com" url="http://github.com/nbfalcon">Nikita Bloshchanevich</vendor>
 
