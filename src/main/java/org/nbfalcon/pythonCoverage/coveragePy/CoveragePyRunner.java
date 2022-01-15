@@ -91,11 +91,11 @@ public class CoveragePyRunner extends CoverageRunner {
     }
 
     private static void showNotFoundLoaderExecutableBalloon(@Nullable Project projectForNotification) {
-        new Notification("",
-                PythonCoverageBundle.message("loader.loaderExecutableNotFound"), NotificationType.ERROR)
+        new Notification("Python Coverage",
+                PythonCoverageBundle.message("notifications.loader.loaderExecutableNotFound"), NotificationType.ERROR)
                 .setDisplayId("pythonCoverage.coveragePyRunner.loaderExecutableNotFound")
                 .setIcon(AllIcons.RunConfigurations.TrackCoverage)
-                .addAction(NotificationAction.create(PythonCoverageBundle.message("loader.executableNotFoundConfigure"),
+                .addAction(NotificationAction.create(PythonCoverageBundle.message("notifications.loader.executableNotFoundConfigure"),
                         (event, notification) -> {
                             final Project project = event.getProject();
                             if (project != null) showCoverageSettings(project);

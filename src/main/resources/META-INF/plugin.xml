@@ -23,6 +23,9 @@
         <projectService serviceImplementation="org.nbfalcon.pythonCoverage.settings.PythonCoverageProjectSettings"/>
         <applicationService serviceImplementation="org.nbfalcon.pythonCoverage.settings.PythonCoverageApplicationSettings"/>
         <coverageOptions implementation="org.nbfalcon.pythonCoverage.settings.PythonCoverageSettingsUi"/>
+
+        <notificationGroup id="Python Coverage" displayType="STICKY_BALLOON"
+                           bundle="PythonCoverage" key="notifications.groups.pythonCoverage"/>
     </extensions>
 
     <actions>
