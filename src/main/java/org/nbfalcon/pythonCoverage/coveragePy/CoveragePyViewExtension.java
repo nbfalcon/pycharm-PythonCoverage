@@ -23,6 +23,7 @@ import org.nbfalcon.pythonCoverage.settings.PythonCoverageProjectSettings;
 
 import java.awt.*;
 import java.awt.event.InputEvent;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -60,6 +61,11 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
 
     private boolean hasCoverage(AbstractTreeNode<?> node) {
         return getPercentage(1, node) != null;
+    }
+
+    @Override
+    public boolean supportFlattenPackages() {
+        return true;
     }
 
     @Override
@@ -139,7 +145,7 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
                     final AbstractTreeNode<?> next = findNextNodeWithCoverage(selected);
                     settings.coverageViewFilterIncluded = true;
                     if (next != null) {
-                        if (!(next instanceof CoverageListRootNode)) {
+                        if (next.getParent() != null) {
                             view.select(((PsiFileSystemItem) next.getValue()).getVirtualFile());
                         } else {
                             final CoverageListNode fakeParent = new CoverageListNode(myProject, (PsiNamedElement) next.getValue(), mySuitesBundle, myStateBean);
@@ -154,7 +160,7 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
             }
 
             private AbstractTreeNode<?> findNextNodeWithCoverage(AbstractTreeNode<?> selected) {
-                while (selected != null && !(selected instanceof CoverageListRootNode) && !hasCoverage(selected)) {
+                while (selected != null && selected.getParent() != null && !hasCoverage(selected)) {
                     final AbstractTreeNode<?> sibling = findNextSiblingWithCoverage(selected);
                     if (sibling != null) return sibling;
                     selected = selected.getParent();
@@ -188,11 +194,46 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
         });
     }
 
+    private void processPackage(AbstractTreeNode<?> node, List<AbstractTreeNode<?>> outResult) {
+        outResult.add(node);
+        for (AbstractTreeNode<?> child : super.getChildrenNodes(node)) {
+            if (child.getValue() instanceof PsiDirectory) {
+                processPackage(child, outResult);
+            }
+        }
+    }
+
+    @Override
+    public @NotNull List<AbstractTreeNode<?>> createTopLevelNodes() {
+        return getChildrenNodes(createRootNode());
+    }
+
+    @Override
+    public @NotNull AbstractTreeNode<?> createRootNode() {
+        final VirtualFile projectFile = VirtualFileManager.getInstance().findFileByUrl("file://" + myProject.getBasePath());
+        return new CoveragePyRootNode(myProject,
+                PsiManager.getInstance(myProject).findDirectory(projectFile),
+                this.mySuitesBundle, myStateBean);
+    }
+
     @Override
     public List<AbstractTreeNode<?>> getChildrenNodes(AbstractTreeNode node) {
         final Predicate<AbstractTreeNode<?>> filter = settings.coverageViewFilterIncluded
                 ? this::hasCoverage
                 : FILTER_PYTHON_FILES;
-        return super.getChildrenNodes(node).stream().filter(filter).collect(Collectors.toList());
+        final List<AbstractTreeNode<?>> children = super.getChildrenNodes(node);
+        if (!myStateBean.myFlattenPackages) {
+            return children.stream().filter(filter).collect(Collectors.toList());
+        }
+        else {
+            final List<AbstractTreeNode<?>> nodes = new ArrayList<>();
+            for (AbstractTreeNode<?> child : children) {
+                if (filter.test(child)) {
+                    if (child.getValue() instanceof PsiDirectory) processPackage(child, nodes);
+                    else nodes.add(child);
+                }
+            }
+            return nodes;
+        }
     }
 }
