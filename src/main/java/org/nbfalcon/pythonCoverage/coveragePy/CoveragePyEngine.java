@@ -1,5 +1,6 @@
 package org.nbfalcon.pythonCoverage.coveragePy;
 
+import com.intellij.CommonBundle;
 import com.intellij.codeEditor.printing.ExportToHTMLSettings;
 import com.intellij.coverage.*;
 import com.intellij.coverage.view.CoverageViewExtension;
@@ -7,10 +8,14 @@ import com.intellij.coverage.view.CoverageViewManager;
 import com.intellij.execution.configurations.RunConfigurationBase;
 import com.intellij.execution.configurations.coverage.CoverageEnabledConfiguration;
 import com.intellij.execution.testframework.AbstractTestProxy;
+import com.intellij.ide.BrowserUtil;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.module.Module;
+import com.intellij.openapi.progress.ProgressIndicator;
+import com.intellij.openapi.progress.ProgressManager;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.NlsActions;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
@@ -28,6 +33,8 @@ import jetbrains.coverage.report.html.HTMLReportBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.nbfalcon.pythonCoverage.i18n.PythonCoverageBundle;
+import org.nbfalcon.pythonCoverage.util.ideaUtil.BackgroundableTaskWithError;
+import org.nbfalcon.pythonCoverage.util.ideaUtil.VirtualFileUtils;
 
 import java.io.File;
 import java.util.Collections;
@@ -91,9 +98,7 @@ public class CoveragePyEngine extends CoverageEngine {
     private static final SourceCodeProvider VF_FILE_CODE_PROVIDER = (file) -> {
         final VirtualFile vFile = VirtualFileManager.getInstance().findFileByUrl("file://" + file);
         if (vFile == null) return null;
-
-        final byte[] contents = vFile.contentsToByteArray(true);
-        return new String(contents, vFile.getCharset());
+        return VirtualFileUtils.readVirtualFile(vFile);
     };
 
     @Override
@@ -131,10 +136,32 @@ public class CoveragePyEngine extends CoverageEngine {
 
     @Override
     public void generateReport(@NotNull Project project, @NotNull DataContext dataContext, @NotNull CoverageSuitesBundle currentSuite) {
+        final ExportToHTMLSettings settings = ExportToHTMLSettings.getInstance(project);
+        ProgressManager.getInstance().run(new BackgroundableTaskWithError(project, PythonCoverageBundle.message("report.generating.progress"), false) {
+            @Override
+            public void run1(@NotNull ProgressIndicator progressIndicator) {
+                generateReport1(project, currentSuite, settings);
+            }
+
+            @Override
+            protected void onSuccess1() {
+                if (settings.OPEN_IN_BROWSER) {
+                    BrowserUtil.browse(new File(settings.OUTPUT_DIRECTORY, "index.html"));
+                }
+            }
+
+            @Override
+            protected void onException(Exception e) {
+                Messages.showErrorDialog(project, e.getMessage(), CommonBundle.getErrorTitle());
+            }
+        });
+    }
+
+    private void generateReport1(@NotNull Project project, @NotNull CoverageSuitesBundle currentSuite,
+                                 @NotNull ExportToHTMLSettings settings) {
         long startNS = System.nanoTime();
         final ProjectData data = currentSuite.getCoverageData();
         if (data == null) return;
-        final ExportToHTMLSettings settings = ExportToHTMLSettings.getInstance(project);
 
         long generationStartNS = System.nanoTime();
         final HTMLReportBuilder reportBuilder = ReportBuilderFactory.createHTMLReportBuilder();

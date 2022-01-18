@@ -55,11 +55,23 @@ public class CoveragePyGenerationData implements CoverageData, CoverageSourceDat
         return this;
     }
 
+    private @Nullable CharSequence getSourceCodeNoexcept(String fqName) {
+        CharSequence sourceCode = null;
+        try {
+            sourceCode = codeProvider.getSourceCode(fqName);
+            if (sourceCode == null) {
+                LOG.error("Error: could not open file: " + fqName);
+            }
+        } catch (IOException e) {
+            LOG.error(e);
+        }
+        return sourceCode;
+    }
+
     @Override
     public void renderSourceCodeFor(@NotNull ClassInfo clazz, @NotNull CoverageCodeRenderer renderer) {
-        try {
-            final CharSequence sourceCode = codeProvider.getSourceCode(clazz.getFQName());
-            if (sourceCode == null) return;
+        final CharSequence sourceCode = getSourceCodeNoexcept(clazz.getFQName());
+        if (sourceCode != null) {
             final MyClassInfo myClazz = (MyClassInfo) clazz;
             int lineNo = 1;
             for (CharSequence line : StringUtil.getLines(sourceCode)) {
@@ -71,8 +83,6 @@ public class CoveragePyGenerationData implements CoverageData, CoverageSourceDat
                 lineNo++;
             }
             renderer.codeWriteFinished();
-        } catch (IOException e) {
-            LOG.warn(e);
         }
     }
 
