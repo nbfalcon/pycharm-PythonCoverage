@@ -8,6 +8,7 @@ import com.intellij.ide.util.treeView.AbstractTreeNode;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.CommonDataKeys;
+import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.fileTypes.FileType;
 import com.intellij.openapi.project.DumbAwareToggleAction;
 import com.intellij.openapi.project.Project;
@@ -23,20 +24,16 @@ import org.nbfalcon.pythonCoverage.settings.PythonCoverageProjectSettings;
 
 import java.awt.*;
 import java.awt.event.InputEvent;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
-    private static final Predicate<AbstractTreeNode<?>> FILTER_PYTHON_FILES = (node) -> {
-        final Object value = node.getValue();
+    public static boolean isAcceptedPythonFile(PsiFileSystemItem value) {
         return value instanceof PsiFile
                 ? coveragePySupports((PsiFile) value)
-                : !Objects.equals(node.getName(), Project.DIRECTORY_STORE_FOLDER);
-    };
+                : !Objects.equals(value.getName(), Project.DIRECTORY_STORE_FOLDER);
+    }
 
     PythonCoverageProjectSettings settings;
 
@@ -63,6 +60,13 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
         return getPercentage(1, node) != null;
     }
 
+    private boolean hasCoverage(PsiFileSystemItem item) {
+        String percentage = (item instanceof PsiDirectory)
+                ? myAnnotator.getDirCoverageInformationString((PsiDirectory) item, mySuitesBundle, myCoverageDataManager)
+                : myAnnotator.getFileCoverageInformationString((PsiFile) item, mySuitesBundle, myCoverageDataManager);
+        return percentage != null;
+    }
+
     @Override
     public boolean supportFlattenPackages() {
         return true;
@@ -79,6 +83,41 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
             return fileOrDir.isDirectory() ? psiManager.findDirectory(fileOrDir) : psiManager.findFile(fileOrDir);
         }
         return null;
+    }
+
+    /**
+     * @apiNote Always run in a PSI read action!
+     */
+    private void processPackageSubdirectories(@NotNull Predicate<PsiFileSystemItem> filter,
+                                              @NotNull PsiDirectory curDir,
+                                              @NotNull List<AbstractTreeNode<?>> outResult,
+                                              @Nullable String baseFqName) {
+        for (PsiDirectory subdir : curDir.getSubdirectories()) {
+            if (filter.test(subdir)) {
+                String fqName = baseFqName == null ? subdir.getName() : baseFqName + "/" + subdir.getName();
+                outResult.add(new CoveragePyListNode(myProject, subdir, mySuitesBundle, myStateBean, fqName));
+                processPackageSubdirectories(filter, subdir, outResult, fqName);
+            }
+        }
+    }
+
+    private void processPackageSubdirectories(@NotNull Predicate<PsiFileSystemItem> filter,
+                                              @NotNull PsiDirectory curDir,
+                                              @NotNull List<AbstractTreeNode<?>> outResult) {
+        ReadAction.run(() -> processPackageSubdirectories(filter, curDir, outResult, null));
+    }
+
+    @Override
+    public @NotNull
+    List<AbstractTreeNode<?>> createTopLevelNodes() {
+        final List<AbstractTreeNode<?>> children = new ArrayList<>();
+        if (myStateBean.myFlattenPackages) {
+            final PsiDirectory projectDir = getProjectPsiDirectory();
+            final Predicate<PsiFileSystemItem> filter = getFilter();
+            processPackageSubdirectories(filter, projectDir, children);
+            filterPsiFilesToNodes(filter, projectDir.getFiles(), children);
+        }
+        return children;
     }
 
     @Override
@@ -131,7 +170,8 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
                         if (projectPsi == null) return;
                         PsiFileSystemItem found = null;
                         for (AbstractTreeNode<?> child : new CoverageListNode(myProject, projectPsi, mySuitesBundle, myStateBean).getChildren()) {
-                            if (FILTER_PYTHON_FILES.test(child)) {
+                            PsiFileSystemItem value = (PsiFileSystemItem) child.getValue();
+                            if (isAcceptedPythonFile(value)) {
                                 found = (PsiFileSystemItem) child.getValue();
                                 break;
                             }
@@ -194,46 +234,49 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
         });
     }
 
-    private void processPackage(AbstractTreeNode<?> node, List<AbstractTreeNode<?>> outResult) {
-        outResult.add(node);
-        for (AbstractTreeNode<?> child : super.getChildrenNodes(node)) {
-            if (child.getValue() instanceof PsiDirectory) {
-                processPackage(child, outResult);
-            }
-        }
-    }
-
     @Override
-    public @NotNull List<AbstractTreeNode<?>> createTopLevelNodes() {
-        return getChildrenNodes(createRootNode());
-    }
-
-    @Override
-    public @NotNull AbstractTreeNode<?> createRootNode() {
-        final VirtualFile projectFile = VirtualFileManager.getInstance().findFileByUrl("file://" + myProject.getBasePath());
-        return new CoveragePyRootNode(myProject,
-                PsiManager.getInstance(myProject).findDirectory(projectFile),
-                this.mySuitesBundle, myStateBean);
+    public @NotNull
+    AbstractTreeNode<?> createRootNode() {
+        return new CoveragePyRootNode(myProject, getProjectPsiDirectory(), this.mySuitesBundle, myStateBean);
     }
 
     @Override
     public List<AbstractTreeNode<?>> getChildrenNodes(AbstractTreeNode node) {
-        final Predicate<AbstractTreeNode<?>> filter = settings.coverageViewFilterIncluded
+        final Object value = node.getValue();
+        if (!(value instanceof PsiDirectory)) return Collections.emptyList();
+
+        final Predicate<PsiFileSystemItem> filter = getFilter();
+
+        final ArrayList<AbstractTreeNode<?>> children = new ArrayList<>();
+        ReadAction.run(() -> {
+            filterPsiFilesToNodes(filter, ((PsiDirectory) value).getSubdirectories(), children);
+            filterPsiFilesToNodes(filter, ((PsiDirectory) value).getFiles(), children);
+        });
+        return children;
+    }
+
+    private Predicate<PsiFileSystemItem> getFilter() {
+        return settings.coverageViewFilterIncluded
                 ? this::hasCoverage
-                : FILTER_PYTHON_FILES;
-        final List<AbstractTreeNode<?>> children = super.getChildrenNodes(node);
-        if (!myStateBean.myFlattenPackages) {
-            return children.stream().filter(filter).collect(Collectors.toList());
-        }
-        else {
-            final List<AbstractTreeNode<?>> nodes = new ArrayList<>();
-            for (AbstractTreeNode<?> child : children) {
-                if (filter.test(child)) {
-                    if (child.getValue() instanceof PsiDirectory) processPackage(child, nodes);
-                    else nodes.add(child);
-                }
+                : CoveragePyViewExtension::isAcceptedPythonFile;
+    }
+
+    private void filterPsiFilesToNodes(@NotNull Predicate<PsiFileSystemItem> filter,
+                                       @NotNull PsiFileSystemItem[] nodes,
+                                       @NotNull List<AbstractTreeNode<?>> outChildren) {
+        for (PsiFileSystemItem node : nodes) {
+            if (filter.test(node)) {
+                outChildren.add(new CoverageListNode(myProject, node, mySuitesBundle, myStateBean));
             }
-            return nodes;
         }
+    }
+
+    @NotNull
+    private PsiDirectory getProjectPsiDirectory() {
+        final VirtualFile projectFile = VirtualFileManager.getInstance().findFileByUrl("file://" + myProject.getBasePath());
+        if (projectFile == null) throw new NullPointerException("Project disappeared as a VirtualFile!");
+        final PsiDirectory result = PsiManager.getInstance(myProject).findDirectory(projectFile);
+        if (result == null) throw new NullPointerException("Project does not exist in PSI");
+        return result;
     }
 }
