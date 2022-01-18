@@ -17,6 +17,7 @@ import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.*;
 import com.intellij.util.ui.ColumnInfo;
 import com.jetbrains.python.PythonFileType;
+import com.jetbrains.python.psi.PyUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.nbfalcon.pythonCoverage.i18n.PythonCoverageBundle;
@@ -91,12 +92,13 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
     private void processPackageSubdirectories(@NotNull Predicate<PsiFileSystemItem> filter,
                                               @NotNull PsiDirectory curDir,
                                               @NotNull List<AbstractTreeNode<?>> outResult,
-                                              @Nullable String baseFqName) {
+                                              @NotNull String fqNamePrefix) {
         for (PsiDirectory subdir : curDir.getSubdirectories()) {
             if (filter.test(subdir)) {
-                String fqName = baseFqName == null ? subdir.getName() : baseFqName + "/" + subdir.getName();
-                outResult.add(new CoveragePyListNode(myProject, subdir, mySuitesBundle, myStateBean, fqName));
-                processPackageSubdirectories(filter, subdir, outResult, fqName);
+                String myFqName = fqNamePrefix + subdir.getName();
+                outResult.add(new CoveragePyListNode(myProject, subdir, mySuitesBundle, myStateBean, myFqName));
+                String nextFqNamePrefix = myFqName + (PyUtil.isExplicitPackage(subdir) ? "." : "/");
+                processPackageSubdirectories(filter, subdir, outResult, nextFqNamePrefix);
             }
         }
     }
@@ -104,7 +106,7 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
     private void processPackageSubdirectories(@NotNull Predicate<PsiFileSystemItem> filter,
                                               @NotNull PsiDirectory curDir,
                                               @NotNull List<AbstractTreeNode<?>> outResult) {
-        ReadAction.run(() -> processPackageSubdirectories(filter, curDir, outResult, null));
+        ReadAction.run(() -> processPackageSubdirectories(filter, curDir, outResult, ""));
     }
 
     @Override
