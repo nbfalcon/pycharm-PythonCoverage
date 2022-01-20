@@ -86,6 +86,29 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
         return null;
     }
 
+    private static String getDirComponentName(PsiDirectory dir) {
+        return dir.getName() + (PyUtil.isExplicitPackage(dir) ? "." : "/");
+    }
+
+    private static List<PsiDirectory> getPsiDirectoryPath(PsiDirectory root, PsiDirectory until) {
+        List<PsiDirectory> path = new ArrayList<>();
+        while (until != null && until != root) {
+            path.add(until);
+            until = until.getParentDirectory();
+        }
+        Collections.reverse(path);
+        return path;
+    }
+
+    private static @NotNull
+    String getFQNamePrefixToRoot(PsiDirectory root, PsiDirectory until) {
+        StringBuilder result = new StringBuilder();
+        for (PsiDirectory dir : getPsiDirectoryPath(root, until)) {
+            result.append(getDirComponentName(dir));
+        }
+        return result.toString();
+    }
+
     /**
      * @apiNote Always run in a PSI read action!
      */
@@ -95,31 +118,12 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
                                               @NotNull String fqNamePrefix) {
         for (PsiDirectory subdir : curDir.getSubdirectories()) {
             if (filter.test(subdir)) {
-                String myFqName = fqNamePrefix + subdir.getName();
-                outResult.add(new CoveragePyListNode(myProject, subdir, mySuitesBundle, myStateBean, myFqName));
-                String nextFqNamePrefix = myFqName + (PyUtil.isExplicitPackage(subdir) ? "." : "/");
-                processPackageSubdirectories(filter, subdir, outResult, nextFqNamePrefix);
+                outResult.add(new CoveragePyListNode(myProject, subdir, mySuitesBundle, myStateBean,
+                        fqNamePrefix + subdir.getName()));
+                processPackageSubdirectories(filter, subdir, outResult,
+                        fqNamePrefix + getDirComponentName(subdir));
             }
         }
-    }
-
-    private void processPackageSubdirectories(@NotNull Predicate<PsiFileSystemItem> filter,
-                                              @NotNull PsiDirectory curDir,
-                                              @NotNull List<AbstractTreeNode<?>> outResult) {
-        ReadAction.run(() -> processPackageSubdirectories(filter, curDir, outResult, ""));
-    }
-
-    @Override
-    public @NotNull
-    List<AbstractTreeNode<?>> createTopLevelNodes() {
-        final List<AbstractTreeNode<?>> children = new ArrayList<>();
-        if (myStateBean.myFlattenPackages) {
-            final PsiDirectory projectDir = getProjectPsiDirectory();
-            final Predicate<PsiFileSystemItem> filter = getFilter();
-            processPackageSubdirectories(filter, projectDir, children);
-            filterPsiFilesToNodes(filter, projectDir.getFiles(), children);
-        }
-        return children;
     }
 
     @Override
@@ -243,17 +247,43 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
     }
 
     @Override
+    public @NotNull
+    List<AbstractTreeNode<?>> createTopLevelNodes() {
+        return createTopLevelNodes(getProjectPsiDirectory(), "");
+    }
+
+    private List<AbstractTreeNode<?>> createTopLevelNodes(PsiDirectory projectDir,
+                                                          @NotNull String fqNamePrefix) {
+        List<AbstractTreeNode<?>> children = new ArrayList<>();
+
+        final Predicate<PsiFileSystemItem> filter = getFilter();
+        ReadAction.run(() -> processPackageSubdirectories(filter, projectDir, children, fqNamePrefix));
+        filterPsiFilesToNodes(filter, projectDir.getFiles(), children);
+
+        return children;
+    }
+
+    @Override
     public List<AbstractTreeNode<?>> getChildrenNodes(AbstractTreeNode node) {
         final Object value = node.getValue();
         if (!(value instanceof PsiDirectory)) return Collections.emptyList();
+        final PsiDirectory nodeDir = (PsiDirectory) value;
 
         final Predicate<PsiFileSystemItem> filter = getFilter();
 
-        final ArrayList<AbstractTreeNode<?>> children = new ArrayList<>();
-        ReadAction.run(() -> {
-            filterPsiFilesToNodes(filter, ((PsiDirectory) value).getSubdirectories(), children);
-            filterPsiFilesToNodes(filter, ((PsiDirectory) value).getFiles(), children);
-        });
+        final List<AbstractTreeNode<?>> children;
+        if (!myStateBean.myFlattenPackages) {
+            children = new ArrayList<>();
+            ReadAction.run(() -> {
+                filterPsiFilesToNodes(filter, nodeDir.getSubdirectories(), children);
+                filterPsiFilesToNodes(filter, nodeDir.getFiles(), children);
+            });
+        } else {
+            // intellij-java doesn't cache this either
+            final PsiDirectory projectDir = getProjectPsiDirectory();
+            final String prefix = getFQNamePrefixToRoot(projectDir, nodeDir);
+            children = createTopLevelNodes(nodeDir, prefix);
+        }
         for (AbstractTreeNode<?> child : children) {
             child.setParent(node);
         }
