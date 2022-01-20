@@ -27,7 +27,9 @@ public class CoveragePyRootNode extends CoverageListRootNode {
             myTopLevelPackagesFilterIncluded = myBundle.getCoverageEngine()
                     .createCoverageViewExtension(myProject, myBundle, myStateBean)
                     .createTopLevelNodes();
-            for (AbstractTreeNode<?> node : myTopLevelPackagesFilterIncluded) node.setParent(this);
+            for (AbstractTreeNode<?> child : myTopLevelPackagesFilterIncluded) {
+                child.setParent(this);
+            }
         }
         return myTopLevelPackagesFilterIncluded;
     }

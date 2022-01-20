@@ -254,6 +254,9 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
             filterPsiFilesToNodes(filter, ((PsiDirectory) value).getSubdirectories(), children);
             filterPsiFilesToNodes(filter, ((PsiDirectory) value).getFiles(), children);
         });
+        for (AbstractTreeNode<?> child : children) {
+            child.setParent(node);
+        }
         return children;
     }
 
