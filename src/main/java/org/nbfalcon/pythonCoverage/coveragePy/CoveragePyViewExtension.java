@@ -163,7 +163,6 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
             // HACK: this sets settings.coverageViewFilterIncluded and then causes the view to be updated. The
             // implementation involves numerous horrible hacks and seems more like an exploit.
             private void updateView(CoverageView view, boolean filterIncluded) {
-                assert EdtInvocationManager.getInstance().isEventDispatchThread();
                 if (!filterIncluded) {
                     settings.coverageViewFilterIncluded = false;
                     final AbstractTreeNode<?> selected = (AbstractTreeNode<?>) view.getData(CommonDataKeys.NAVIGATABLE.getName());
