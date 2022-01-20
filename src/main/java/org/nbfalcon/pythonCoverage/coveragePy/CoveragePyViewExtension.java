@@ -16,6 +16,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.*;
 import com.intellij.util.ui.ColumnInfo;
+import com.intellij.util.ui.EdtInvocationManager;
 import com.jetbrains.python.PythonFileType;
 import com.jetbrains.python.psi.PyUtil;
 import org.jetbrains.annotations.NotNull;
@@ -159,13 +160,15 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
                 return (CoverageView) source;
             }
 
-            // HACK: this sets settings.coverageViewFilterIncluded and then causes the view to be updated. The latter
-            // involves numerous horrible hacks seem more like an exploit.
+            // HACK: this sets settings.coverageViewFilterIncluded and then causes the view to be updated. The
+            // implementation involves numerous horrible hacks and seems more like an exploit.
             private void updateView(CoverageView view, boolean filterIncluded) {
+                assert EdtInvocationManager.getInstance().isEventDispatchThread();
                 if (!filterIncluded) {
                     settings.coverageViewFilterIncluded = false;
                     final AbstractTreeNode<?> selected = (AbstractTreeNode<?>) view.getData(CommonDataKeys.NAVIGATABLE.getName());
                     if (selected != null) {
+                        refreshViaNodeHack(view, selected);
                         view.select(((PsiFileSystemItem) selected.getValue()).getVirtualFile());
                     } else {
                         final String projectPath = myProject.getBasePath();
@@ -174,24 +177,22 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
                         if (projectDir == null) return;
                         final PsiDirectory projectPsi = PsiManager.getInstance(myProject).findDirectory(projectDir);
                         if (projectPsi == null) return;
-                        PsiFileSystemItem found = null;
-                        for (AbstractTreeNode<?> child : new CoverageListNode(myProject, projectPsi, mySuitesBundle, myStateBean).getChildren()) {
-                            PsiFileSystemItem value = (PsiFileSystemItem) child.getValue();
-                            if (isAcceptedPythonFile(value)) {
-                                found = (PsiFileSystemItem) child.getValue();
-                                break;
+                        ReadAction.run(() -> {
+                            for (PsiElement file : projectPsi.getChildren()) {
+                                if (file instanceof PsiFileSystemItem && isAcceptedPythonFile((PsiFileSystemItem) file)) {
+                                    view.select(((PsiFileSystemItem) file).getVirtualFile());
+                                    break;
+                                }
                             }
-                        }
-                        if (found != null) {
-                            view.select(found.getVirtualFile());
-                        }
+                        });
                     }
                 } else {
                     AbstractTreeNode<?> selected = (AbstractTreeNode<?>) view.getData(CommonDataKeys.NAVIGATABLE.getName());
                     final AbstractTreeNode<?> next = findNextNodeWithCoverage(selected);
                     settings.coverageViewFilterIncluded = true;
                     if (next != null) {
-                        if (next.getParent() != null) {
+                        if ((AbstractTreeNode<?>) next.getParent() != null) {
+                            refreshViaNodeHack(view, selected);
                             view.select(((PsiFileSystemItem) next.getValue()).getVirtualFile());
                         } else {
                             final CoverageListNode fakeParent = new CoverageListNode(myProject, (PsiNamedElement) next.getValue(), mySuitesBundle, myStateBean);
@@ -203,6 +204,16 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
                         }
                     }
                 }
+            }
+
+            /**
+             * Cause VIEW to be refreshed by abusing its SELECTED element.
+             */
+            private void refreshViaNodeHack(CoverageView view, AbstractTreeNode<?> selected) {
+                final AbstractTreeNode<?> oldParent = selected.getParent();
+                selected.setParent(selected);
+                view.goUp();
+                selected.setParent(oldParent);
             }
 
             private AbstractTreeNode<?> findNextNodeWithCoverage(AbstractTreeNode<?> selected) {
