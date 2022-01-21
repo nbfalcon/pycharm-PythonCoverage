@@ -26,7 +26,7 @@ import java.util.List;
  *
  * This entire class is a massive hack, so the API and pass-trough variables are horrible.
  */
-public class CoverageViewUpdater {
+public class CoverageViewUpdaterHack {
     // HACK: this sets settings.coverageViewFilterIncluded and then causes the view to be updated. The
     // implementation involves numerous horrible hacks and seems more like an exploit.
     public static void updateView(
@@ -39,23 +39,9 @@ public class CoverageViewUpdater {
             if (settings != null) settings.coverageViewFilterIncluded = false;
             final AbstractTreeNode<?> selected = (AbstractTreeNode<?>) view.getData(CommonDataKeys.NAVIGATABLE.getName());
             if (selected != null) {
-                refreshViaNodeHack(view, selected);
-                view.select(((PsiFileSystemItem) selected.getValue()).getVirtualFile());
+                selectSafelyWithNodeHack(view, selected, selected);
             } else {
-                final String projectPath = myProject.getBasePath();
-                if (projectPath == null) return;
-                final VirtualFile projectDir = VirtualFileManager.getInstance().findFileByUrl("file://" + projectPath);
-                if (projectDir == null) return;
-                final PsiDirectory projectPsi = PsiManager.getInstance(myProject).findDirectory(projectDir);
-                if (projectPsi == null) return;
-                ReadAction.run(() -> {
-                    for (PsiElement file : projectPsi.getChildren()) {
-                        if (file instanceof PsiFileSystemItem && CoveragePyAnnotator.isAcceptedPythonFile((PsiFileSystemItem) file)) {
-                            view.select(((PsiFileSystemItem) file).getVirtualFile());
-                            break;
-                        }
-                    }
-                });
+                refreshWithoutNodeHack(view, myProject);
             }
         } else {
             AbstractTreeNode<?> selected = (AbstractTreeNode<?>) view.getData(CommonDataKeys.NAVIGATABLE.getName());
@@ -64,8 +50,7 @@ public class CoverageViewUpdater {
             if (settings != null) settings.coverageViewFilterIncluded = true;
             if (next != null) {
                 if ((AbstractTreeNode<?>) next.getParent() != null) {
-                    refreshViaNodeHack(view, selected);
-                    view.select(((PsiFileSystemItem) next.getValue()).getVirtualFile());
+                    selectSafelyWithNodeHack(view, selected, next);
                 } else {
                     final CoverageListNode fakeParent = new CoverageListNode(
                             myProject, (PsiNamedElement) next.getValue(),
@@ -76,8 +61,43 @@ public class CoverageViewUpdater {
                     next.setParent(null);
                     view.goUp();
                 }
+            } else {
+                refreshWithoutNodeHack(view, myProject);
             }
         }
+    }
+
+    /**
+     * Refresh the given CoverageView using only knowledge of the project (less precise, but the only choice if there
+     * is no selected node for some reason).
+     */
+    private static void refreshWithoutNodeHack(@NotNull CoverageView view, Project myProject) {
+        final String projectPath = myProject.getBasePath();
+        if (projectPath == null) return;
+        final VirtualFile projectDir = VirtualFileManager.getInstance().findFileByUrl("file://" + projectPath);
+        if (projectDir == null) return;
+        final PsiDirectory projectPsi = PsiManager.getInstance(myProject).findDirectory(projectDir);
+        if (projectPsi == null) return;
+        ReadAction.run(() -> {
+            for (PsiElement file : projectPsi.getChildren()) {
+                if (file instanceof PsiFileSystemItem && CoveragePyAnnotator.isAcceptedPythonFile((PsiFileSystemItem) file)) {
+                    view.select(((PsiFileSystemItem) file).getVirtualFile());
+                    break;
+                }
+            }
+        });
+    }
+
+    /**
+     * Selects a new node by updating first, to avoid an internal Swing index out of bounds exception later.
+     *
+     * @param view     The coverage view.
+     * @param selected The currently selected node, to be abused.
+     * @param next     The node to be selected.
+     */
+    private static void selectSafelyWithNodeHack(@NotNull CoverageView view, AbstractTreeNode<?> selected, AbstractTreeNode<?> next) {
+        refreshViaNodeHack(view, selected);
+        view.select(((PsiFileSystemItem) next.getValue()).getVirtualFile());
     }
 
     /**

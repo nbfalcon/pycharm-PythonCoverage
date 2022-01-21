@@ -12,6 +12,7 @@ import com.intellij.util.ui.EdtInvocationManager;
 import com.jetbrains.python.PythonFileType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.nbfalcon.pythonCoverage.util.ideaUtil.CoverageViewUpdaterHack;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,12 +20,11 @@ import java.util.Objects;
 
 // FIXME: We should show actual covered files per dir/uncovered; lines should not be included
 // FIXME: Directory: 100% (100/100) lines, 100% (50/50) files
-// FIXME: updating + flatten + filter still doesn't work argh...
 public class CoveragePyAnnotator extends SimpleCoverageAnnotator {
     /**
      * Mapping of CoverageView => a hook that updates it once no longer updating.
      * The hooks are Runnable closures that invoke
-     * {@link org.nbfalcon.pythonCoverage.util.ideaUtil.CoverageViewUpdater#updateView}.
+     * {@link CoverageViewUpdaterHack#updateView}.
      *
      * @see "isUpdating"
      */
@@ -32,7 +32,9 @@ public class CoveragePyAnnotator extends SimpleCoverageAnnotator {
     /**
      * Are the coverage infos currently being updated (createRenewRequest() is still running asynchronously)?
      */
-    private volatile boolean isUpdating = false;
+    private boolean isUpdating = false;
+
+    private int renewVersion = 0;
 
     public CoveragePyAnnotator(Project project) {
         super(project);
@@ -55,17 +57,12 @@ public class CoveragePyAnnotator extends SimpleCoverageAnnotator {
     }
 
     @Override
-    public void onSuiteChosen(CoverageSuitesBundle newSuite) {
-        super.onSuiteChosen(newSuite);
-        isUpdating = true;
-    }
-
-    @Override
     protected @Nullable
     Runnable createRenewRequest(@NotNull CoverageSuitesBundle suite, @NotNull CoverageDataManager dataManager) {
         final Runnable renewRequest = super.createRenewRequest(suite, dataManager);
         if (renewRequest == null) return null;
 
+        isUpdating = true;
         return () -> {
             renewRequest.run();
             EdtInvocationManager.getInstance().invokeLater(this::updateCoverageViews);
@@ -74,6 +71,7 @@ public class CoveragePyAnnotator extends SimpleCoverageAnnotator {
 
     private void updateCoverageViews() {
         isUpdating = false;
+        renewVersion++;
         for (Runnable cb : onUpdateViewsHook.values()) {
             cb.run();
         }
@@ -88,5 +86,9 @@ public class CoveragePyAnnotator extends SimpleCoverageAnnotator {
 
     public boolean isUpdating() {
         return isUpdating;
+    }
+
+    public int getRenewVersion() {
+        return renewVersion;
     }
 }

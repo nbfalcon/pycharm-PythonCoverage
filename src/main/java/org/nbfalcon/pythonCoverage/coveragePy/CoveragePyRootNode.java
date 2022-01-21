@@ -17,16 +17,19 @@ import java.util.List;
  */
 public class CoveragePyRootNode extends CoverageListRootNode {
     private List<AbstractTreeNode<?>> myTopLevelPackagesFilterIncluded;
+    private int myRenewVersion = 0;
 
     public CoveragePyRootNode(Project project, @NotNull PsiNamedElement classOrPackage, CoverageSuitesBundle bundle, CoverageViewManager.StateBean stateBean) {
         super(project, classOrPackage, bundle, stateBean);
     }
 
     private Collection<AbstractTreeNode<?>> getTopLevelPackagesFiltered() {
-        if (myTopLevelPackagesFilterIncluded== null) {
+        final int actualRenew = CoveragePyAnnotator.getInstance(myProject).getRenewVersion();
+        if (myTopLevelPackagesFilterIncluded == null || myRenewVersion != actualRenew) {
             myTopLevelPackagesFilterIncluded = myBundle.getCoverageEngine()
                     .createCoverageViewExtension(myProject, myBundle, myStateBean)
                     .createTopLevelNodes();
+            myRenewVersion = actualRenew;
             for (AbstractTreeNode<?> child : myTopLevelPackagesFilterIncluded) {
                 child.setParent(this);
             }

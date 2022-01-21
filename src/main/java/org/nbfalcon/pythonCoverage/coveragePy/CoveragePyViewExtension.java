@@ -24,7 +24,7 @@ import org.jetbrains.annotations.Nullable;
 import org.nbfalcon.pythonCoverage.i18n.PythonCoverageBundle;
 import org.nbfalcon.pythonCoverage.settings.PythonCoverageProjectSettings;
 import org.nbfalcon.pythonCoverage.util.ideaUtil.CoverageAnnotatorUtil;
-import org.nbfalcon.pythonCoverage.util.ideaUtil.CoverageViewUpdater;
+import org.nbfalcon.pythonCoverage.util.ideaUtil.CoverageViewUpdaterHack;
 import org.nbfalcon.pythonCoverage.util.ideaUtil.MyIconUtils;
 
 import javax.swing.*;
@@ -138,7 +138,7 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
                 if (ev != null) {
                     final CoverageView view = getCoverageViewFromEvent(ev);
                     if (view != null) {
-                        CoverageViewUpdater.updateView(view, b, settings,
+                        CoverageViewUpdaterHack.updateView(view, b, settings,
                                 myProject, myAnnotator, mySuitesBundle, myStateBean, myCoverageDataManager);
                     }
                 } else {
@@ -218,7 +218,7 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
                         CoverageView view = CoverageViewManager.getInstance(myProject).getToolwindow(mySuitesBundle);
                         if (view != null) {
                             annotator.maybeUpdateLater(view,
-                                    () -> CoverageViewUpdater.updateView(view, true, null,
+                                    () -> CoverageViewUpdaterHack.updateView(view, true, null,
                                             myProject, myAnnotator, mySuitesBundle, myStateBean, myCoverageDataManager));
                         }
                     });
