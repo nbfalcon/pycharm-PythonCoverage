@@ -20,8 +20,9 @@ import org.nbfalcon.pythonCoverage.settings.PythonCoverageProjectSettings;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.Predicate;
 
-// FIXME: the OOB bug won't go away...
+// TODO: is the OOB bug realled fixed?...
 /**
  * Implements a way to update a {@link CoverageView}.
  *
@@ -42,7 +43,7 @@ public class CoverageViewUpdaterHack {
             if (selected != null) {
                 selectSafelyWithNodeHack(view, selected, selected);
             } else {
-                refreshWithoutNodeHack(view, myProject);
+                refreshWithoutNodeHack(view, myProject, CoveragePyAnnotator::isAcceptedPythonFile);
             }
         } else {
             AbstractTreeNode<?> selected = (AbstractTreeNode<?>) view.getData(CommonDataKeys.NAVIGATABLE.getName());
@@ -63,7 +64,7 @@ public class CoverageViewUpdaterHack {
                     view.goUp();
                 }
             } else {
-                refreshWithoutNodeHack(view, myProject);
+                refreshWithoutNodeHack(view, myProject, (file) -> myAnnotator.isCovered(file, mySuitesBundle, myCoverageDataManager));
             }
         }
     }
@@ -72,7 +73,8 @@ public class CoverageViewUpdaterHack {
      * Refresh the given CoverageView using only knowledge of the project (less precise, but the only choice if there
      * is no selected node for some reason).
      */
-    private static void refreshWithoutNodeHack(@NotNull CoverageView view, Project myProject) {
+    private static void refreshWithoutNodeHack(@NotNull CoverageView view, Project myProject,
+                                               Predicate<PsiFileSystemItem> filter) {
         final String projectPath = myProject.getBasePath();
         if (projectPath == null) return;
         final VirtualFile projectDir = VirtualFileManager.getInstance().findFileByUrl("file://" + projectPath);
@@ -81,7 +83,7 @@ public class CoverageViewUpdaterHack {
         if (projectPsi == null) return;
         ReadAction.run(() -> {
             for (PsiElement file : projectPsi.getChildren()) {
-                if (file instanceof PsiFileSystemItem && CoveragePyAnnotator.isAcceptedPythonFile((PsiFileSystemItem) file)) {
+                if (file instanceof PsiFileSystemItem && filter.test((PsiFileSystemItem) file)) {
                     view.select(((PsiFileSystemItem) file).getVirtualFile());
                     break;
                 }
@@ -137,7 +139,6 @@ public class CoverageViewUpdaterHack {
         final Collection<? extends AbstractTreeNode<?>> children1 = parent.getChildren();
         if (!(children1 instanceof List)) return null;
 
-        // FIXME: select next sibling by PSI so that flatten works elegantly (parent is selected)
         final List<? extends AbstractTreeNode<?>> children = (List<? extends AbstractTreeNode<?>>) children1;
         final int index = children.indexOf(node);
         if (index == -1) return null;
@@ -147,7 +148,7 @@ public class CoverageViewUpdaterHack {
                 return children.get(i);
             }
         }
-        for (int i = index; i >= 0; i--) {
+        for (int i = index - 1; i >= 0; i--) {
             if (myAnnotator.isCovered(
                     (PsiFileSystemItem) children.get(i).getValue(), mySuitesBundle, myCoverageDataManager)) {
                 return children.get(i);
