@@ -99,15 +99,17 @@ public class CoveragePyProgramRunner implements ProgramRunner<RunnerSettings> {
     }
 
     private CommandLinePatcher createCoveragePyPatcher(@Nullable @NonNls String outputPath, PythonCoverageProjectSettings settings) {
-        return generalCommandLine -> {
-            final ParamsGroup coverageGroup = generalCommandLine.getParametersList().getParamsGroup(PythonCommandLineState.GROUP_COVERAGE);
+        return commandLine -> {
+            final ParamsGroup coverageGroup = commandLine.getParametersList().getParamsGroup(PythonCommandLineState.GROUP_COVERAGE);
             assert coverageGroup != null;
             if (settings.coveragePyUseModule) coverageGroup.addParameters(settings.getCoveragePyModuleArgs());
             else coverageGroup.addParameters("-m", "coverage"); // FIXME: use bundled
             coverageGroup.addParameters("run");
             // The JavaCoverageEngine just doesn't download the file if the path is null, and lets the CoverageRunner
             // proceed as if nothing happened, so we just do the same.
-            if (outputPath != null) coverageGroup.addParameters("-o", new File(outputPath).getAbsolutePath());
+            if (outputPath != null) {
+                commandLine.withEnvironment("COVERAGE_FILE", new File(outputPath).getAbsolutePath());
+            }
             if (settings.enableBranchCoverage) coverageGroup.addParameter("--branch");
             coverageGroup.addParameter("--");
         };

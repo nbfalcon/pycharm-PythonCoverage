@@ -61,9 +61,9 @@ public class CoveragePyRunner extends CoverageRunner {
                                                     @Nullable Project projectForWarnings) {
         try {
             final ProcessBuilder builder = SettingsUtil.createProcess(
-                    PythonCoverageApplicationSettings.getInstance().getCoveragePyLoaderPythonCommand(),
-                    "-m", "coverage", "xml",
-                    "-c", sessionDataFile.getAbsolutePath(), "-o", "-");
+                            PythonCoverageApplicationSettings.getInstance().getCoveragePyLoaderPythonCommand(),
+                            "-m", "coverage", "xml", "-o", "-");
+            builder.environment().put("COVERAGE_FILE", sessionDataFile.getAbsolutePath());
             final Process process = builder.start();
             // DEBUG: Thread.sleep(10000);
             // FIXME: remove, using a custom inputstream
