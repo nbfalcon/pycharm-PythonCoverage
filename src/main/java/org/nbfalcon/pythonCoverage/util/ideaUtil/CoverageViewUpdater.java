@@ -117,6 +117,7 @@ public class CoverageViewUpdater {
         final Collection<? extends AbstractTreeNode<?>> children1 = parent.getChildren();
         if (!(children1 instanceof List)) return null;
 
+        // FIXME: select next sibling by PSI so that flatten works elegantly (parent is selected)
         final List<? extends AbstractTreeNode<?>> children = (List<? extends AbstractTreeNode<?>>) children1;
         final int index = children.indexOf(node);
         if (index == -1) return null;

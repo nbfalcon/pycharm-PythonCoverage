@@ -25,7 +25,9 @@ import org.nbfalcon.pythonCoverage.i18n.PythonCoverageBundle;
 import org.nbfalcon.pythonCoverage.settings.PythonCoverageProjectSettings;
 import org.nbfalcon.pythonCoverage.util.ideaUtil.CoverageAnnotatorUtil;
 import org.nbfalcon.pythonCoverage.util.ideaUtil.CoverageViewUpdater;
+import org.nbfalcon.pythonCoverage.util.ideaUtil.MyIconUtils;
 
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.util.ArrayList;
@@ -115,14 +117,16 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
         }
     }
 
+    private static final Icon FILTER_IN_SUITE_ICON =
+            MyIconUtils.scaleIconTo(AllIcons.RunConfigurations.TrackCoverage, 14, 13);
+
     @Override
     public @NotNull
     List<AnAction> createExtraToolbarActions() {
         return List.of(new DumbAwareToggleAction(
                 PythonCoverageBundle.messageLazy("viewExtension.filterIncludedInCoverage"),
                 PythonCoverageBundle.messageLazy("viewExtension.filterIncludedInCoverageDescription"),
-                // FIXME: scale Icon to 13x13
-                AllIcons.RunConfigurations.TrackCoverage) {
+                FILTER_IN_SUITE_ICON) {
             @Override
             public boolean isSelected(@NotNull AnActionEvent anActionEvent) {
                 return settings.coverageViewFilterIncluded;
