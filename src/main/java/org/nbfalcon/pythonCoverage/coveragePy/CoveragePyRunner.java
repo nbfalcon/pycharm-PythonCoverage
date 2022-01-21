@@ -66,6 +66,7 @@ public class CoveragePyRunner extends CoverageRunner {
                     "-c", sessionDataFile.getAbsolutePath(), "-o", "-");
             final Process process = builder.start();
             // DEBUG: Thread.sleep(10000);
+            // FIXME: remove, using a custom inputstream
             process.waitFor(); // Allow interrupt() via cancel
             InputStream input = process.getInputStream();
             BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
@@ -110,7 +111,6 @@ public class CoveragePyRunner extends CoverageRunner {
     @Override
     @Nullable
     public ProjectData loadCoverageData(@NotNull File sessionDataFile, @Nullable CoverageSuite baseCoverageSuite) {
-        // if (0 == 0) return null; // STOPSHIP FIXME
         final @Nullable Project project = baseCoverageSuite == null ? null : baseCoverageSuite.getProject();
         if (ApplicationManager.getApplication().isDispatchThread()) {
             return InterruptableModalTask.runSyncForResult(

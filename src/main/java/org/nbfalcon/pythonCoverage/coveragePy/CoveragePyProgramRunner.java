@@ -50,6 +50,7 @@ public class CoveragePyProgramRunner implements ProgramRunner<RunnerSettings> {
         return new CoverageRunnerData();
     }
 
+    // FIXME: we should have a bundled coverage runner here
     @Override
     public void execute(@NotNull ExecutionEnvironment environment) throws ExecutionException {
         final RunProfileState state = environment.getState();

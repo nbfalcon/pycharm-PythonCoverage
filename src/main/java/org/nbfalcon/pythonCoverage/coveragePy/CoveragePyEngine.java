@@ -166,7 +166,7 @@ public class CoveragePyEngine extends CoverageEngine {
         long generationStartNS = System.nanoTime();
         final HTMLReportBuilder reportBuilder = ReportBuilderFactory.createHTMLReportBuilder();
         reportBuilder.setReportDir(new File(settings.OUTPUT_DIRECTORY));
-        reportBuilder.generateReport(new CoveragePyGenerationData(data, VF_FILE_CODE_PROVIDER));
+        reportBuilder.generateReport(new CoveragePyHTMLData(data, VF_FILE_CODE_PROVIDER));
 
         long endNS = System.nanoTime();
         CoverageLogger.logHTMLReport(project,

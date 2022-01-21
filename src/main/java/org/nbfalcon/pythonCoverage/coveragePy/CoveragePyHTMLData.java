@@ -16,14 +16,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-public class CoveragePyGenerationData implements CoverageData, CoverageSourceData {
-    private static final Logger LOG = Logger.getInstance(CoveragePyGenerationData.class);
+public class CoveragePyHTMLData implements CoverageData, CoverageSourceData {
+    private static final Logger LOG = Logger.getInstance(CoveragePyHTMLData.class);
 
     private @NotNull
     final SourceCodeProvider codeProvider;
     private final List<ClassInfo> myClasses;
 
-    public CoveragePyGenerationData(@NotNull ProjectData data, @NotNull SourceCodeProvider codeProvider) {
+    public CoveragePyHTMLData(@NotNull ProjectData data, @NotNull SourceCodeProvider codeProvider) {
         this.codeProvider = codeProvider;
         this.myClasses = computeClassInfo(data);
     }
