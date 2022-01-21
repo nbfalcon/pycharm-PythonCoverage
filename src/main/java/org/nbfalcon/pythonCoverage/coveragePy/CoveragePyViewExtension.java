@@ -161,7 +161,7 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
     @Override
     public @NotNull
     List<AbstractTreeNode<?>> createTopLevelNodes() {
-        return createTopLevelNodes(getProjectPsiDirectory(), "");
+        return ReadAction.compute(() -> createTopLevelNodes(getProjectPsiDirectory(), ""));
     }
 
     private List<AbstractTreeNode<?>> createTopLevelNodes(PsiDirectory projectDir,
@@ -169,7 +169,7 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
         List<AbstractTreeNode<?>> children = new ArrayList<>();
 
         final Predicate<PsiFileSystemItem> filter = getFilterAndMaybeUpdate();
-        ReadAction.run(() -> processPackageSubdirectories(filter, projectDir, children, fqNamePrefix));
+        processPackageSubdirectories(filter, projectDir, children, fqNamePrefix);
         filterPsiFilesToNodes(filter, projectDir.getFiles(), children);
 
         return children;
@@ -192,9 +192,11 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
             });
         } else {
             // intellij-java doesn't cache this either
-            final PsiDirectory projectDir = getProjectPsiDirectory();
-            final String prefix = getFQNamePrefixToRoot(projectDir, nodeDir);
-            children = createTopLevelNodes(nodeDir, prefix);
+            children = ReadAction.compute(() -> {
+                final PsiDirectory projectDir = getProjectPsiDirectory();
+                final String prefix = getFQNamePrefixToRoot(projectDir, nodeDir);
+                return createTopLevelNodes(nodeDir, prefix);
+            });
         }
         for (AbstractTreeNode<?> child : children) {
             child.setParent(node);
@@ -212,7 +214,7 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
                         CoverageView view = CoverageViewManager.getInstance(myProject).getToolwindow(mySuitesBundle);
                         if (view != null) {
                             annotator.maybeUpdateLater(view,
-                                    () -> CoverageViewUpdater.updateView(view, false, null,
+                                    () -> CoverageViewUpdater.updateView(view, true, null,
                                             myProject, myAnnotator, mySuitesBundle, myStateBean, myCoverageDataManager));
                         }
                     });

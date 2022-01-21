@@ -19,6 +19,7 @@ import java.util.Objects;
 
 // FIXME: We should show actual covered files per dir/uncovered; lines should not be included
 // FIXME: Directory: 100% (100/100) lines, 100% (50/50) files
+// FIXME: updating + flatten + filter still doesn't work argh...
 public class CoveragePyAnnotator extends SimpleCoverageAnnotator {
     /**
      * Mapping of CoverageView => a hook that updates it once no longer updating.
