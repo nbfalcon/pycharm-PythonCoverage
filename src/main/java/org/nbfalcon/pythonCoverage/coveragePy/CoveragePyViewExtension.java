@@ -23,7 +23,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.nbfalcon.pythonCoverage.i18n.PythonCoverageBundle;
 import org.nbfalcon.pythonCoverage.settings.PythonCoverageProjectSettings;
-import org.nbfalcon.pythonCoverage.util.ideaUtil.CoverageAnnotatorUtil;
 import org.nbfalcon.pythonCoverage.util.ideaUtil.CoverageViewUpdaterHack;
 import org.nbfalcon.pythonCoverage.util.ideaUtil.MyIconUtils;
 
@@ -51,12 +50,8 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
                 new PercentageCoverageColumnInfo(1, PythonCoverageBundle.message("viewExtension.column.line%"), mySuitesBundle, myStateBean)};
     }
 
-    private boolean hasCoverage(AbstractTreeNode<?> node) {
-        return hasCoverage((PsiFileSystemItem) node.getValue());
-    }
-
     private boolean hasCoverage(PsiFileSystemItem item) {
-        return CoverageAnnotatorUtil.hasCoverage(item, myAnnotator, mySuitesBundle, myCoverageDataManager);
+        return ((AnnotatorWithMembership) myAnnotator).isCovered(item, mySuitesBundle, myCoverageDataManager);
     }
 
     @Override
@@ -135,11 +130,11 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
             @Override
             public void setSelected(@NotNull AnActionEvent anActionEvent, boolean b) {
                 final InputEvent ev = anActionEvent.getInputEvent();
-                if (ev != null) {
+                if (ev != null && myAnnotator instanceof AnnotatorWithMembership) {
                     final CoverageView view = getCoverageViewFromEvent(ev);
                     if (view != null) {
                         CoverageViewUpdaterHack.updateView(view, b, settings,
-                                myProject, myAnnotator, mySuitesBundle, myStateBean, myCoverageDataManager);
+                                myProject, (AnnotatorWithMembership) myAnnotator, mySuitesBundle, myStateBean, myCoverageDataManager);
                     }
                 } else {
                     settings.coverageViewFilterIncluded = b;
@@ -209,7 +204,7 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
     }
 
     private Predicate<PsiFileSystemItem> getFilterAndMaybeUpdate() {
-        if (settings.coverageViewFilterIncluded) {
+        if (settings.coverageViewFilterIncluded && myAnnotator instanceof AnnotatorWithMembership) {
             if (myAnnotator instanceof CoveragePyAnnotator) {
                 CoveragePyAnnotator annotator = (CoveragePyAnnotator) myAnnotator;
                 if (annotator.isUpdating()) {
@@ -219,7 +214,8 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
                         if (view != null) {
                             annotator.maybeUpdateLater(view,
                                     () -> CoverageViewUpdaterHack.updateView(view, true, null,
-                                            myProject, myAnnotator, mySuitesBundle, myStateBean, myCoverageDataManager));
+                                            myProject, (AnnotatorWithMembership) myAnnotator, mySuitesBundle, myStateBean,
+                                            myCoverageDataManager));
                         }
                     });
                     // Show at least some files while we're updating

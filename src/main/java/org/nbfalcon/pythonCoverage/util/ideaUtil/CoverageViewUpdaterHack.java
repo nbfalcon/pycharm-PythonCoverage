@@ -1,6 +1,5 @@
 package org.nbfalcon.pythonCoverage.util.ideaUtil;
 
-import com.intellij.coverage.CoverageAnnotator;
 import com.intellij.coverage.CoverageDataManager;
 import com.intellij.coverage.CoverageSuitesBundle;
 import com.intellij.coverage.view.CoverageListNode;
@@ -14,6 +13,7 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.psi.*;
 import org.jetbrains.annotations.NotNull;
+import org.nbfalcon.pythonCoverage.coveragePy.AnnotatorWithMembership;
 import org.nbfalcon.pythonCoverage.coveragePy.CoveragePyAnnotator;
 import org.nbfalcon.pythonCoverage.settings.PythonCoverageProjectSettings;
 
@@ -21,6 +21,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 
+// FIXME: the OOB bug won't go away...
 /**
  * Implements a way to update a {@link CoverageView}.
  *
@@ -33,7 +34,7 @@ public class CoverageViewUpdaterHack {
             @NotNull CoverageView view,
             boolean filterIncluded, @Nullable PythonCoverageProjectSettings settings,
             Project myProject,
-            CoverageAnnotator myAnnotator, CoverageSuitesBundle mySuitesBundle,
+            AnnotatorWithMembership myAnnotator, CoverageSuitesBundle mySuitesBundle,
             CoverageViewManager.StateBean myStateBean, CoverageDataManager myCoverageDataManager) {
         if (!filterIncluded) {
             if (settings != null) settings.coverageViewFilterIncluded = false;
@@ -111,12 +112,11 @@ public class CoverageViewUpdaterHack {
     }
 
     private static AbstractTreeNode<?> findNextNodeWithCoverage(AbstractTreeNode<?> selected,
-                                                                CoverageAnnotator myAnnotator,
+                                                                AnnotatorWithMembership myAnnotator,
                                                                 CoverageSuitesBundle mySuitesBundle,
                                                                 CoverageDataManager myCoverageDataManager) {
         while (selected != null && selected.getParent() != null
-                && !CoverageAnnotatorUtil.hasCoverage((PsiFileSystemItem) selected.getValue(),
-                myAnnotator, mySuitesBundle, myCoverageDataManager)) {
+                && !myAnnotator.isCovered((PsiFileSystemItem) selected.getValue(), mySuitesBundle, myCoverageDataManager)) {
             final AbstractTreeNode<?> sibling = findNextSiblingWithCoverage(selected, myAnnotator, mySuitesBundle,
                     myCoverageDataManager);
             if (sibling != null) return sibling;
@@ -128,7 +128,7 @@ public class CoverageViewUpdaterHack {
     @SuppressWarnings("unchecked")
     private static AbstractTreeNode<?> findNextSiblingWithCoverage(
             AbstractTreeNode<?> node,
-            CoverageAnnotator myAnnotator,
+            AnnotatorWithMembership myAnnotator,
             CoverageSuitesBundle mySuitesBundle,
             CoverageDataManager myCoverageDataManager) {
         final AbstractTreeNode<?> parent = node.getParent();
@@ -142,14 +142,14 @@ public class CoverageViewUpdaterHack {
         final int index = children.indexOf(node);
         if (index == -1) return null;
         for (int i = index; i < children.size(); i++) {
-            if (CoverageAnnotatorUtil.hasCoverage(
-                    (PsiFileSystemItem) children.get(i).getValue(), myAnnotator, mySuitesBundle, myCoverageDataManager)) {
+            if (myAnnotator.isCovered(
+                    (PsiFileSystemItem) children.get(i).getValue(), mySuitesBundle, myCoverageDataManager)) {
                 return children.get(i);
             }
         }
         for (int i = index; i >= 0; i--) {
-            if (CoverageAnnotatorUtil.hasCoverage(
-                    (PsiFileSystemItem) children.get(i).getValue(), myAnnotator, mySuitesBundle, myCoverageDataManager)) {
+            if (myAnnotator.isCovered(
+                    (PsiFileSystemItem) children.get(i).getValue(), mySuitesBundle, myCoverageDataManager)) {
                 return children.get(i);
             }
         }
