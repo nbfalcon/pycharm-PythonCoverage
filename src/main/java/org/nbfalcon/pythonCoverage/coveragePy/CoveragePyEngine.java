@@ -213,7 +213,7 @@ public class CoveragePyEngine extends CoverageEngine {
 
     @Override
     public boolean coverageProjectViewStatisticsApplicableTo(VirtualFile fileOrDir) {
-        return !fileOrDir.isDirectory() && fileOrDir.getFileType() == PythonFileType.INSTANCE;
+        return fileOrDir.isDirectory() || fileOrDir.getFileType() == PythonFileType.INSTANCE;
     }
 
     @Override
