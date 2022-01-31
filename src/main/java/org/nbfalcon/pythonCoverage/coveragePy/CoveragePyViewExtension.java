@@ -3,7 +3,6 @@ package org.nbfalcon.pythonCoverage.coveragePy;
 import com.intellij.coverage.CoverageAnnotator;
 import com.intellij.coverage.CoverageSuitesBundle;
 import com.intellij.coverage.view.*;
-import com.intellij.icons.AllIcons;
 import com.intellij.ide.util.treeView.AbstractTreeNode;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -22,11 +21,10 @@ import com.jetbrains.python.psi.PyUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.nbfalcon.pythonCoverage.i18n.PythonCoverageBundle;
+import org.nbfalcon.pythonCoverage.icon.PythonCoverageIcons;
 import org.nbfalcon.pythonCoverage.settings.PythonCoverageProjectSettings;
 import org.nbfalcon.pythonCoverage.util.ideaUtil.CoverageViewUpdaterHack;
-import org.nbfalcon.pythonCoverage.util.ideaUtil.MyIconUtils;
 
-import javax.swing.*;
 import java.awt.*;
 import java.awt.event.InputEvent;
 import java.util.ArrayList;
@@ -112,16 +110,13 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
         }
     }
 
-    private static final Icon FILTER_IN_SUITE_ICON =
-            MyIconUtils.scaleIconTo(AllIcons.RunConfigurations.TrackCoverage, 14, 13);
-
     @Override
     public @NotNull
     List<AnAction> createExtraToolbarActions() {
         return List.of(new DumbAwareToggleAction(
                 PythonCoverageBundle.messageLazy("viewExtension.filterIncludedInCoverage"),
                 PythonCoverageBundle.messageLazy("viewExtension.filterIncludedInCoverageDescription"),
-                FILTER_IN_SUITE_ICON) {
+                PythonCoverageIcons.TrackCoverageSquare) {
             @Override
             public boolean isSelected(@NotNull AnActionEvent anActionEvent) {
                 return settings.coverageViewFilterIncluded;
