@@ -30,6 +30,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 public class CoveragePyRunner extends CoverageRunner {
     private static final Logger LOG = Logger.getInstance(CoveragePyRunner.class);
@@ -59,23 +61,34 @@ public class CoveragePyRunner extends CoverageRunner {
     @Nullable
     private static ProjectData loadCoverageDataSync(@NotNull File sessionDataFile,
                                                     @Nullable Project projectForWarnings) {
+        Process startedProcess = null;
         try {
             final ProcessBuilder builder = SettingsUtil.createProcess(
-                            PythonCoverageApplicationSettings.getInstance().getCoveragePyLoaderPythonCommand(),
-                            "-m", "coverage", "xml", "-o", "-");
+                    PythonCoverageApplicationSettings.getInstance().getCoveragePyLoaderPythonCommand(),
+                    "-m", "coverage", "xml", "-o", "-");
             builder.environment().put("COVERAGE_FILE", sessionDataFile.getAbsolutePath());
-            final Process process = builder.start();
-            // DEBUG: Thread.sleep(10000);
-            // FIXME: remove, using a custom inputstream
-            process.waitFor(); // Allow interrupt() via cancel
-            InputStream input = process.getInputStream();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
-            final CoveragePyLoaderXML.CoverageOutput data = CoveragePyLoaderXML.loadFromXML(reader);
-            if (data == null) {
-                LOG.warn("coverage.py xml returned invalid output");
-                return null;
-            }
-            return loadCoverageOutput(data);
+            Process process = builder.start();
+            startedProcess = process;
+            CompletableFuture<ProjectData> result = CompletableFuture.supplyAsync(() -> {
+                InputStream input = process.getInputStream();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8));
+                final CoveragePyLoaderXML.CoverageOutput data;
+                try {
+                    data = CoveragePyLoaderXML.loadFromXML(reader);
+                    if (data != null) {
+                        return loadCoverageOutput(data);
+                    } else {
+                        LOG.warn("coverage.py xml returned invalid output");
+                        return null;
+                    }
+                } catch (IOException e) {
+                    if (!(e instanceof JsonParseException && e.getMessage().startsWith("Unexpected character 'N'"))) {
+                        LOG.warn(e);
+                    }
+                    return null;
+                }
+            });
+            return result.get();
         } catch (IOException e) {
             // Handle "No data to report." (printed to stdout for some reason)
             if (e instanceof JsonParseException && e.getMessage().startsWith("Unexpected character 'N'")) {
@@ -84,7 +97,11 @@ public class CoveragePyRunner extends CoverageRunner {
                 showNotFoundLoaderExecutableBalloon(projectForWarnings);
             }
             LOG.warn(e);
+        } catch (ExecutionException e) {
+            LOG.warn(e);
         } catch (InterruptedException ignored) {
+            // NOTE: startedProcess must not be null
+            startedProcess.destroy();
         }
         // NOTE: null means nothing new to contribute, but the coverage window may still pop up, contains the old
         // coverage data. This is not a bug in the plugin, maybe in IDEA (but probably not).
