@@ -50,7 +50,7 @@ public class CoveragePyProgramRunner implements ProgramRunner<RunnerSettings> {
         return new CoverageRunnerData();
     }
 
-    // FIXME: we should have a bundled coverage runner here
+    // TODO: we should have a bundled coverage runner here
     @Override
     public void execute(@NotNull ExecutionEnvironment environment) throws ExecutionException {
         final RunProfileState state = environment.getState();
@@ -103,7 +103,7 @@ public class CoveragePyProgramRunner implements ProgramRunner<RunnerSettings> {
             final ParamsGroup coverageGroup = commandLine.getParametersList().getParamsGroup(PythonCommandLineState.GROUP_COVERAGE);
             assert coverageGroup != null;
             if (settings.coveragePyUseModule) coverageGroup.addParameters(settings.getCoveragePyModuleArgs());
-            else coverageGroup.addParameters("-m", "coverage"); // FIXME: use bundled
+            else coverageGroup.addParameters("-m", "coverage"); // TODO: use bundled
             coverageGroup.addParameters("run");
             // The JavaCoverageEngine just doesn't download the file if the path is null, and lets the CoverageRunner
             // proceed as if nothing happened, so we just do the same.
