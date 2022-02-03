@@ -17,8 +17,11 @@ import com.intellij.psi.PsiFileSystemItem;
 import com.intellij.rt.coverage.data.ProjectData;
 import com.intellij.util.ui.EdtInvocationManager;
 import com.jetbrains.python.PythonFileType;
+import org.jetbrains.annotations.Nls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.PropertyKey;
+import org.nbfalcon.pythonCoverage.i18n.PythonCoverageBundle;
 import org.nbfalcon.pythonCoverage.util.ideaUtil.CoverageViewUpdaterHack;
 
 import java.io.File;
@@ -27,8 +30,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-// FIXME: Directory: 100% (100/100) lines, 100% (50/50) files
-public class CoveragePyAnnotator extends SimpleCoverageAnnotator implements AnnotatorWithMembership {
+// FIXME: packages view
+public class CoveragePyAnnotator extends SimpleCoverageAnnotator implements AnnotatorWithMembership, AnnotatorWithDetail {
     /**
      * Mapping of CoverageView => a hook that updates it once no longer updating.
      * The hooks are Runnable closures that invoke
@@ -128,6 +131,64 @@ public class CoveragePyAnnotator extends SimpleCoverageAnnotator implements Anno
     FileCoverageInfo fillInfoForUncoveredFile(@NotNull File file) {
         // Explicit null, see {@link #collectFolderCoverageInfo}
         return null;
+    }
+
+    // If true, getLinesCoverageInformationString() should return a detailed coverage info (k/n lines).
+    // This hack? is needed because myCoverageFileInfos is private and, unlike getDirCoverageInfo, there is no way to
+    // access it.
+    private final ThreadLocal<Boolean> linesCoverageDetailed = new ThreadLocal<>();
+
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    private boolean isLinesCoverageDetailed() {
+        final Boolean isDetailed = linesCoverageDetailed.get();
+        return isDetailed != null && isDetailed;
+    }
+
+    private static String formatPercent(@PropertyKey(resourceBundle = PythonCoverageBundle.BUNDLE) String key,
+                                        int covered, int total) {
+        return PythonCoverageBundle.message(key, covered, total, calcPercent(covered, total));
+    }
+
+    @Override
+    protected @Nullable
+    @Nls
+    String getLinesCoverageInformationString(@NotNull FileCoverageInfo info) {
+        if (info instanceof DirCoverageInfo && ((DirCoverageInfo) info).coveredFilesCount == 0) return null;
+
+        if (!isLinesCoverageDetailed()) {
+            return super.getLinesCoverageInformationString(info);
+        } else {
+            return formatPercent("viewExtension.coveredFiles%", info.coveredLineCount, info.totalLineCount);
+        }
+    }
+
+    @Override
+    protected @Nullable
+    @Nls
+    String getFilesCoverageInformationString(@NotNull DirCoverageInfo info) {
+        if (info.coveredFilesCount > 0) {
+            if (!isLinesCoverageDetailed()) {
+                return super.getFilesCoverageInformationString(info);
+            } else {
+                return formatPercent("viewExtension.coveredLines%", info.coveredFilesCount, info.totalFilesCount);
+            }
+        } else {
+            // For uncovered directories, show the amount of files in them only (covered would be 100%)
+            return PythonCoverageBundle.message("viewExtension.noCoveredFiles", info.totalFilesCount);
+        }
+    }
+
+    @Override
+    public @Nullable
+    @Nls
+    String getDetailedCoverageInformationString(@NotNull PsiFileSystemItem fileOrDir,
+                                                @NotNull CoverageSuitesBundle currentSuite, @NotNull CoverageDataManager manager) {
+        linesCoverageDetailed.set(true);
+        String result = fileOrDir instanceof PsiFile
+                ? getFileCoverageInformationString((PsiFile) fileOrDir, currentSuite, manager)
+                : getDirCoverageInformationString((PsiDirectory) fileOrDir, currentSuite, manager);
+        linesCoverageDetailed.set(false);
+        return result;
     }
 
     @Override

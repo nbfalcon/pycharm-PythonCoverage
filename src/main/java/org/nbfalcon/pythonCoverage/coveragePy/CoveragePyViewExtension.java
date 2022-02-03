@@ -93,6 +93,16 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
         return result.toString();
     }
 
+    @Override
+    public String getPercentage(int columnIdx, @NotNull AbstractTreeNode node) {
+        if (myAnnotator instanceof AnnotatorWithDetail) {
+            return ((AnnotatorWithDetail) myAnnotator).getDetailedCoverageInformationString(
+                    (PsiFileSystemItem) node.getValue(), mySuitesBundle, myCoverageDataManager);
+        } else {
+            return super.getPercentage(columnIdx, node);
+        }
+    }
+
     /**
      * @apiNote Always run in a PSI read action!
      */

@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.function.Predicate;
 
 // TODO: is the OOB bug realled fixed?...
+// FIXME: upstream this, but obviously without a hack. CoverageView should have a built-in, extensible "filter
+//  coverage" button, that should also work for java.
 /**
  * Implements a way to update a {@link CoverageView}.
  *
