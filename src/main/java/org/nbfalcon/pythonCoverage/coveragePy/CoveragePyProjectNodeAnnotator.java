@@ -29,15 +29,15 @@ public class CoveragePyProjectNodeAnnotator extends AbstractCoverageProjectViewN
         Project project = projectViewNode.getProject();
         if (project == null) return;
 
+        final CoveragePyAnnotator annotator = CoveragePyAnnotator.getInstance(project);
+        CoverageDataManager data = getCoverageDataManager(project);
+        if (data == null) return;
+        final CoverageSuitesBundle suites = data.getCurrentSuitesBundle();
+        if (suites == null || !(suites.getCoverageEngine() instanceof CoveragePyEngine)) return;
+
         final Object value = projectViewNode.getValue();
         if (isPackageElement(value)) {
             final PsiManager psiManager = PsiManager.getInstance(project);
-
-            final CoveragePyAnnotator annotator = CoveragePyAnnotator.getInstance(project);
-            CoverageDataManager data = getCoverageDataManager(project);
-            if (data == null) return;
-            final CoverageSuitesBundle suites = data.getCurrentSuitesBundle();
-            if (suites == null) return;
 
             BaseCoverageAnnotator.DirCoverageInfo info = new BaseCoverageAnnotator.DirCoverageInfo();
 
@@ -60,12 +60,6 @@ public class CoveragePyProjectNodeAnnotator extends AbstractCoverageProjectViewN
                 && isPackageElement(projectViewNode.getParent().getValue())) {
             final PsiFile psi = (PsiFile) value;
 
-            final CoveragePyAnnotator annotator = CoveragePyAnnotator.getInstance(project);
-            CoverageDataManager data = getCoverageDataManager(project);
-            if (data == null) return;
-            final CoverageSuitesBundle suites = data.getCurrentSuitesBundle();
-            if (suites == null) return;
-
             final String info = annotator.getFileCoverageInformationString(psi, suites, data);
             if (info != null) {
                 presentationData.setLocationString(info);
@@ -76,18 +70,12 @@ public class CoveragePyProjectNodeAnnotator extends AbstractCoverageProjectViewN
             // That is, we don't need to do anything special; packages are "ScopeTreeViewModel$FileNode"s though...
             if (thisFile.isDirectory()) {
                 final PsiDirectory psi = PsiManager.getInstance(project).findDirectory(thisFile);
-                if (psi == null) return;
-
-                final CoveragePyAnnotator annotator = CoveragePyAnnotator.getInstance(project);
-                CoverageDataManager data = getCoverageDataManager(project);
-                if (data == null) return;
-                final CoverageSuitesBundle suites = data.getCurrentSuitesBundle();
-                if (suites == null) return;
-
-                BaseCoverageAnnotator.DirCoverageInfo info = annotator.getDirCoverageInfo(psi, suites);
-                if (info == null) return;
-
-                doAnnotate(info, annotator, presentationData);
+                if (psi != null) {
+                    BaseCoverageAnnotator.DirCoverageInfo info = annotator.getDirCoverageInfo(psi, suites);
+                    if (info != null) {
+                        doAnnotate(info, annotator, presentationData);
+                    }
+                }
             }
         }
     }
