@@ -43,9 +43,13 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
     @Override
     @SuppressWarnings("rawtypes")
     public ColumnInfo[] createColumnInfos() {
-        return new ColumnInfo[]{
-                new ElementColumnInfo(),
-                new PercentageCoverageColumnInfo(1, PythonCoverageBundle.message("viewExtension.column.line%"), mySuitesBundle, myStateBean)};
+        ArrayList<ColumnInfo> columns = new ArrayList<>();
+        columns.add(new ElementColumnInfo());
+        columns.add(new PercentageCoverageColumnInfo(1, PythonCoverageBundle.message("viewExtension.column.line%"), mySuitesBundle, myStateBean));
+        if (settings.enableBranchCoverage) {
+            columns.add(new PercentageCoverageColumnInfo(2, PythonCoverageBundle.message("viewExtension.column.branch%"), mySuitesBundle, myStateBean));
+        }
+        return columns.toArray(ColumnInfo.EMPTY_ARRAY);
     }
 
     private boolean hasCoverage(PsiFileSystemItem item) {
@@ -58,8 +62,7 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
     }
 
     @Override
-    public @Nullable
-    PsiElement getElementToSelect(Object object) {
+    public @Nullable PsiElement getElementToSelect(Object object) {
         if (object instanceof PsiElement) {
             return (PsiElement) object;
         } else if (object instanceof VirtualFile) {
@@ -84,8 +87,7 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
         return path;
     }
 
-    private static @NotNull
-    String getFQNamePrefixToRoot(PsiDirectory root, PsiDirectory until) {
+    private static @NotNull String getFQNamePrefixToRoot(PsiDirectory root, PsiDirectory until) {
         StringBuilder result = new StringBuilder();
         for (PsiDirectory dir : getPsiDirectoryPath(root, until)) {
             result.append(getDirComponentName(dir));
@@ -96,37 +98,30 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
     @Override
     public String getPercentage(int columnIdx, @NotNull AbstractTreeNode node) {
         if (myAnnotator instanceof AnnotatorWithDetail) {
-            return ((AnnotatorWithDetail) myAnnotator).getDetailedCoverageInformationString(
-                    (PsiFileSystemItem) node.getValue(), mySuitesBundle, myCoverageDataManager);
-        } else {
-            return super.getPercentage(columnIdx, node);
+            if (columnIdx == 1) {
+                return ((AnnotatorWithDetail) myAnnotator).getDetailedCoverageInformationString((PsiFileSystemItem) node.getValue(), mySuitesBundle, myCoverageDataManager);
+            } else if (columnIdx == 2) {
+                return ((AnnotatorWithDetail) myAnnotator).getBranchCoverageInformationString((PsiFileSystemItem) node.getValue(), mySuitesBundle, myCoverageDataManager);
+            }
         }
+        return super.getPercentage(columnIdx, node);
     }
 
     /**
      * @apiNote Always run in a PSI read action!
      */
-    private void processPackageSubdirectories(@NotNull Predicate<PsiFileSystemItem> filter,
-                                              @NotNull PsiDirectory curDir,
-                                              @NotNull List<AbstractTreeNode<?>> outResult,
-                                              @NotNull String fqNamePrefix) {
+    private void processPackageSubdirectories(@NotNull Predicate<PsiFileSystemItem> filter, @NotNull PsiDirectory curDir, @NotNull List<AbstractTreeNode<?>> outResult, @NotNull String fqNamePrefix) {
         for (PsiDirectory subdir : curDir.getSubdirectories()) {
             if (filter.test(subdir)) {
-                outResult.add(new CoveragePyListNode(myProject, subdir, mySuitesBundle, myStateBean,
-                        fqNamePrefix + subdir.getName()));
-                processPackageSubdirectories(filter, subdir, outResult,
-                        fqNamePrefix + getDirComponentName(subdir));
+                outResult.add(new CoveragePyListNode(myProject, subdir, mySuitesBundle, myStateBean, fqNamePrefix + subdir.getName()));
+                processPackageSubdirectories(filter, subdir, outResult, fqNamePrefix + getDirComponentName(subdir));
             }
         }
     }
 
     @Override
-    public @NotNull
-    List<AnAction> createExtraToolbarActions() {
-        return List.of(new DumbAwareToggleAction(
-                PythonCoverageBundle.messageLazy("viewExtension.filterIncludedInCoverage"),
-                PythonCoverageBundle.messageLazy("viewExtension.filterIncludedInCoverageDescription"),
-                PythonCoverageIcons.TrackCoverageSquare) {
+    public @NotNull List<AnAction> createExtraToolbarActions() {
+        return List.of(new DumbAwareToggleAction(PythonCoverageBundle.messageLazy("viewExtension.filterIncludedInCoverage"), PythonCoverageBundle.messageLazy("viewExtension.filterIncludedInCoverageDescription"), PythonCoverageIcons.TrackCoverageSquare) {
             @Override
             public boolean isSelected(@NotNull AnActionEvent anActionEvent) {
                 return settings.coverageViewFilterIncluded;
@@ -138,8 +133,7 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
                 if (ev != null && myAnnotator instanceof AnnotatorWithMembership) {
                     final CoverageView view = getCoverageViewFromEvent(ev);
                     if (view != null) {
-                        CoverageViewUpdaterHack.updateView(view, b, settings,
-                                myProject, (AnnotatorWithMembership) myAnnotator, mySuitesBundle, myStateBean, myCoverageDataManager);
+                        CoverageViewUpdaterHack.updateView(view, b, settings, myProject, (AnnotatorWithMembership) myAnnotator, mySuitesBundle, myStateBean, myCoverageDataManager);
                     }
                 } else {
                     settings.coverageViewFilterIncluded = b;
@@ -157,19 +151,16 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
     }
 
     @Override
-    public @NotNull
-    AbstractTreeNode<?> createRootNode() {
+    public @NotNull AbstractTreeNode<?> createRootNode() {
         return new CoveragePyRootNode(myProject, getProjectPsiDirectory(), this.mySuitesBundle, myStateBean);
     }
 
     @Override
-    public @NotNull
-    List<AbstractTreeNode<?>> createTopLevelNodes() {
+    public @NotNull List<AbstractTreeNode<?>> createTopLevelNodes() {
         return ReadAction.compute(() -> createTopLevelNodes(getProjectPsiDirectory(), ""));
     }
 
-    private List<AbstractTreeNode<?>> createTopLevelNodes(PsiDirectory projectDir,
-                                                          @NotNull String fqNamePrefix) {
+    private List<AbstractTreeNode<?>> createTopLevelNodes(PsiDirectory projectDir, @NotNull String fqNamePrefix) {
         List<AbstractTreeNode<?>> children = new ArrayList<>();
 
         final Predicate<PsiFileSystemItem> filter = getFilterAndMaybeUpdate();
@@ -217,10 +208,7 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
                         // view can be null while constructing the Coverage tool window, so get it on the EDT later
                         CoverageView view = CoverageViewManager.getInstance(myProject).getToolwindow(mySuitesBundle);
                         if (view != null) {
-                            annotator.maybeUpdateLater(view,
-                                    () -> CoverageViewUpdaterHack.updateView(view, true, null,
-                                            myProject, (AnnotatorWithMembership) myAnnotator, mySuitesBundle, myStateBean,
-                                            myCoverageDataManager));
+                            annotator.maybeUpdateLater(view, () -> CoverageViewUpdaterHack.updateView(view, true, null, myProject, (AnnotatorWithMembership) myAnnotator, mySuitesBundle, myStateBean, myCoverageDataManager));
                         }
                     });
                     // Show at least some files while we're updating
@@ -232,9 +220,7 @@ public class CoveragePyViewExtension extends DirectoryCoverageViewExtension {
         return CoveragePyAnnotator::isAcceptedPythonFile;
     }
 
-    private void filterPsiFilesToNodes(@NotNull Predicate<PsiFileSystemItem> filter,
-                                       @NotNull PsiFileSystemItem[] nodes,
-                                       @NotNull List<AbstractTreeNode<?>> outChildren) {
+    private void filterPsiFilesToNodes(@NotNull Predicate<PsiFileSystemItem> filter, @NotNull PsiFileSystemItem[] nodes, @NotNull List<AbstractTreeNode<?>> outChildren) {
         for (PsiFileSystemItem node : nodes) {
             if (filter.test(node)) {
                 outChildren.add(new CoverageListNode(myProject, node, mySuitesBundle, myStateBean));

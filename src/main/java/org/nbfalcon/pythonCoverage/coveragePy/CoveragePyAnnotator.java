@@ -1,9 +1,6 @@
 package org.nbfalcon.pythonCoverage.coveragePy;
 
-import com.intellij.coverage.CoverageDataManager;
-import com.intellij.coverage.CoverageEngine;
-import com.intellij.coverage.CoverageSuitesBundle;
-import com.intellij.coverage.SimpleCoverageAnnotator;
+import com.intellij.coverage.*;
 import com.intellij.coverage.view.CoverageView;
 import com.intellij.openapi.application.ReadAction;
 import com.intellij.openapi.fileTypes.FileType;
@@ -14,6 +11,9 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiFileSystemItem;
+import com.intellij.rt.coverage.data.ClassData;
+import com.intellij.rt.coverage.data.LineCoverage;
+import com.intellij.rt.coverage.data.LineData;
 import com.intellij.rt.coverage.data.ProjectData;
 import com.intellij.util.ui.EdtInvocationManager;
 import com.jetbrains.python.PythonFileType;
@@ -31,6 +31,15 @@ import java.util.Objects;
 import java.util.Set;
 
 public class CoveragePyAnnotator extends SimpleCoverageAnnotator implements AnnotatorWithMembership, AnnotatorWithDetail {
+    public static class FileCoverageInfoEx extends BaseCoverageAnnotator.FileCoverageInfo {
+        int fullyBranchCoveredLineCount;
+    }
+
+    public static class DirCoverageInfoEx extends BaseCoverageAnnotator.DirCoverageInfo {
+        int fullyBranchCoveredFilesCount;
+        int fullyBranchCoveredLineCount;
+    }
+
     /**
      * Mapping of CoverageView => a hook that updates it once no longer updating.
      * The hooks are Runnable closures that invoke
@@ -84,7 +93,7 @@ public class CoveragePyAnnotator extends SimpleCoverageAnnotator implements Anno
     }
 
     @Override
-    protected @Nullable DirCoverageInfo collectFolderCoverage(@NotNull VirtualFile dir, @NotNull CoverageDataManager dataManager, Annotator annotator, ProjectData projectInfo, boolean trackTestFolders, @NotNull ProjectFileIndex index, @NotNull CoverageEngine coverageEngine, Set<? super VirtualFile> visitedDirs, @NotNull Map<String, String> normalizedFiles2Files) {
+    protected @Nullable DirCoverageInfoEx collectFolderCoverage(@NotNull VirtualFile dir, @NotNull CoverageDataManager dataManager, Annotator annotator, ProjectData projectInfo, boolean trackTestFolders, @NotNull ProjectFileIndex index, @NotNull CoverageEngine coverageEngine, Set<? super VirtualFile> visitedDirs, @NotNull Map<String, String> normalizedFiles2Files) {
         if (!visitedDirs.add(dir)) return null;
 
         final Boolean indexOk = ReadAction.compute(() -> index.isInContent(dir) && (shouldCollectCoverageInsideLibraryDirs() || !index.isInLibrary(dir)));
@@ -95,23 +104,31 @@ public class CoveragePyAnnotator extends SimpleCoverageAnnotator implements Anno
 
         final VirtualFile[] children = dataManager.doInReadActionIfProjectOpen(dir::getChildren);
         if (children != null) {
-            DirCoverageInfo result = new DirCoverageInfo();
+            DirCoverageInfoEx result = new DirCoverageInfoEx();
             for (VirtualFile child : children) {
                 if (child.isDirectory()) {
-                    final DirCoverageInfo childInfo = collectFolderCoverage(child, dataManager, annotator, projectInfo, trackTestFolders, index, coverageEngine, visitedDirs, normalizedFiles2Files);
+                    final DirCoverageInfoEx childInfo = collectFolderCoverage(child, dataManager, annotator, projectInfo, trackTestFolders, index, coverageEngine, visitedDirs, normalizedFiles2Files);
                     if (childInfo != null) {
                         result.totalFilesCount += childInfo.totalFilesCount;
                         result.coveredFilesCount += childInfo.coveredFilesCount;
                         result.totalLineCount += childInfo.totalLineCount;
                         result.coveredLineCount += childInfo.coveredLineCount;
+
+                        result.fullyBranchCoveredLineCount += childInfo.fullyBranchCoveredLineCount;
+                        result.fullyBranchCoveredFilesCount += childInfo.fullyBranchCoveredFilesCount;
                     }
                 } else if (coverageEngine.coverageProjectViewStatisticsApplicableTo(child)) {
-                    final FileCoverageInfo childInfo = collectBaseFileCoverage(child, annotator, projectInfo, normalizedFiles2Files);
+                    final FileCoverageInfoEx childInfo = (FileCoverageInfoEx) collectBaseFileCoverage(child, annotator, projectInfo, normalizedFiles2Files);
                     if (childInfo != null) {
                         result.totalLineCount += childInfo.totalLineCount;
                         result.coveredLineCount += childInfo.coveredLineCount;
 
                         result.coveredFilesCount++;
+
+                        result.fullyBranchCoveredLineCount += childInfo.fullyBranchCoveredLineCount;
+                        if (childInfo.fullyBranchCoveredLineCount == childInfo.totalLineCount) {
+                            result.fullyBranchCoveredFilesCount++;
+                        }
                     }
                     result.totalFilesCount++;
                 }
@@ -128,6 +145,34 @@ public class CoveragePyAnnotator extends SimpleCoverageAnnotator implements Anno
     }
 
     @Override
+    protected @Nullable FileCoverageInfoEx fileInfoForCoveredFile(@NotNull ClassData classData) {
+        // Adapted from super.fileInfoForCoveredFile
+        // class data lines = [0, 1, ... count] but first element with index = #0 is fake and isn't
+        // used thus count = length = 1
+        final int count = classData.getLines().length - 1;
+
+        if (count == 0) {
+            return null;
+        }
+
+        final FileCoverageInfoEx info = new FileCoverageInfoEx();
+        for (int i = 1; i <= count; i++) {
+            final LineData lineData = classData.getLineData(i);
+            if (lineData != null) {
+                int status = lineData.getStatus();
+                if (status != LineCoverage.NONE) {
+                    if (status != LineCoverage.PARTIAL) {
+                        info.fullyBranchCoveredLineCount++;
+                    }
+                    info.coveredLineCount++;
+                }
+            }
+            info.totalLineCount++;
+        }
+        return info;
+    }
+
+    @Override
     protected @Nullable FileCoverageInfo fillInfoForUncoveredFile(@NotNull File file) {
         // Explicit null, see {@link #collectFolderCoverageInfo}
         return null;
@@ -136,12 +181,11 @@ public class CoveragePyAnnotator extends SimpleCoverageAnnotator implements Anno
     // If true, getLinesCoverageInformationString() should return a detailed coverage info (k/n lines).
     // This HACK is needed because myCoverageFileInfos is private and, unlike getDirCoverageInfo, there is no way to
     // access it.
-    private final ThreadLocal<Boolean> linesCoverageDetailed = new ThreadLocal<>();
-
-    private boolean isLinesCoverageDetailed() {
-        final Boolean isDetailed = linesCoverageDetailed.get();
-        return isDetailed != null && isDetailed;
+    private enum LinesCoverageRequest {
+        DETAILED, BRANCH
     }
+
+    private final ThreadLocal<LinesCoverageRequest> linesCoverageDetailed = new ThreadLocal<>();
 
     private static String formatPercent(@PropertyKey(resourceBundle = PythonCoverageBundle.BUNDLE) String key, int covered, int total) {
         return PythonCoverageBundle.message(key, covered, total, calcPercent(covered, total));
@@ -151,34 +195,82 @@ public class CoveragePyAnnotator extends SimpleCoverageAnnotator implements Anno
     protected @Nullable @Nls String getLinesCoverageInformationString(@NotNull FileCoverageInfo info) {
         if (info instanceof DirCoverageInfo && ((DirCoverageInfo) info).coveredFilesCount == 0) return null;
 
-        if (isLinesCoverageDetailed()) {
-            return formatPercent("viewExtension.coveredLines%", info.coveredLineCount, info.totalLineCount);
-        } else {
+        LinesCoverageRequest request = linesCoverageDetailed.get();
+        if (request == null) {
             return PythonCoverageBundle.message("viewExtension.coveredLines%Simple",
                     calcPercent(info.coveredLineCount, info.totalLineCount));
         }
+        else if (request == LinesCoverageRequest.DETAILED) {
+            if (!(info instanceof DirCoverageInfo)) {
+                return formatOfTotal(info.coveredLineCount, info.totalLineCount);
+            }
+            else {
+                return formatPercent("viewExtension.coveredLines%", info.coveredLineCount, info.totalLineCount);
+            }
+        }
+        else if (request == LinesCoverageRequest.BRANCH) {
+            if (!(info instanceof DirCoverageInfo)) {
+                return formatOfTotal(getFullyCoveredLineCount(info), info.totalLineCount);
+            }
+            else {
+                return formatPercent("viewExtension.coveredLines%", getFullyCoveredLineCount(info), info.totalLineCount);
+            }
+        }
+        throw new IllegalArgumentException("Unhandled request " + request);
+    }
+
+    private int getFullyCoveredLineCount(@NotNull FileCoverageInfo info) {
+        final int fullyCoveredLineCount;
+        if ((info instanceof FileCoverageInfoEx)) {
+            fullyCoveredLineCount = ((FileCoverageInfoEx) info).fullyBranchCoveredLineCount;
+        } else {
+            assert info instanceof DirCoverageInfoEx;
+            fullyCoveredLineCount = ((DirCoverageInfoEx) info).fullyBranchCoveredLineCount;
+        }
+        return fullyCoveredLineCount;
+    }
+
+    private static String formatOfTotal(int covered, int total) {
+        return String.format("%d/%d (%d%%)", covered, total, calcPercent(covered, total));
     }
 
     @Override
     public @Nullable @Nls String getFilesCoverageInformationString(@NotNull DirCoverageInfo info) {
         if (info.coveredFilesCount > 0) {
-            if (isLinesCoverageDetailed()) {
-                return formatPercent("viewExtension.coveredFiles%", info.coveredFilesCount, info.totalFilesCount);
-            } else {
+            LinesCoverageRequest request = linesCoverageDetailed.get();
+            if (request == null) {
                 return super.getFilesCoverageInformationString(info);
+            } else if (request == LinesCoverageRequest.DETAILED) {
+                return formatPercent("viewExtension.coveredFiles%", info.coveredFilesCount, info.totalFilesCount);
+            } else if (request == LinesCoverageRequest.BRANCH) {
+                return formatPercent("viewExtension.coveredFiles%",
+                        ((DirCoverageInfoEx) info).fullyBranchCoveredFilesCount, info.totalFilesCount);
             }
+            throw new IllegalArgumentException("Unhandled request " + request);
         } else {
             // For uncovered directories, show the amount of files in them only (covered would be 100%)
             return PythonCoverageBundle.message("viewExtension.noCoveredFiles", info.totalFilesCount);
         }
     }
 
+    private String getCoverageInformationStringRequest(@NotNull LinesCoverageRequest request, @NotNull PsiFileSystemItem fileOrDir, @NotNull CoverageSuitesBundle currentSuite, @NotNull CoverageDataManager manager) {
+        linesCoverageDetailed.set(request);
+        String result = fileOrDir instanceof PsiFile
+                ? getFileCoverageInformationString((PsiFile) fileOrDir, currentSuite, manager)
+                : getDirCoverageInformationString((PsiDirectory) fileOrDir, currentSuite, manager);
+        linesCoverageDetailed.remove();
+        return result;
+    }
+
     @Override
     public @Nullable @Nls String getDetailedCoverageInformationString(@NotNull PsiFileSystemItem fileOrDir, @NotNull CoverageSuitesBundle currentSuite, @NotNull CoverageDataManager manager) {
-        linesCoverageDetailed.set(true);
-        String result = fileOrDir instanceof PsiFile ? getFileCoverageInformationString((PsiFile) fileOrDir, currentSuite, manager) : getDirCoverageInformationString((PsiDirectory) fileOrDir, currentSuite, manager);
-        linesCoverageDetailed.set(false);
-        return result;
+        return getCoverageInformationStringRequest(LinesCoverageRequest.DETAILED, fileOrDir, currentSuite, manager);
+    }
+
+    @Nls
+    @Override
+    public @Nullable String getBranchCoverageInformationString(@NotNull PsiFileSystemItem fileOrDir, @NotNull CoverageSuitesBundle currentSuite, @NotNull CoverageDataManager manager) {
+        return getCoverageInformationStringRequest(LinesCoverageRequest.BRANCH, fileOrDir, currentSuite, manager);
     }
 
     @Override

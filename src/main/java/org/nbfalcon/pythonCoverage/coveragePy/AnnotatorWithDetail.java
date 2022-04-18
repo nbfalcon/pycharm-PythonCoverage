@@ -13,4 +13,10 @@ public interface AnnotatorWithDetail {
     String getDetailedCoverageInformationString(@NotNull PsiFileSystemItem fileOrDir,
                                                 @NotNull CoverageSuitesBundle currentSuite,
                                                 @NotNull CoverageDataManager manager);
+
+    @Nullable
+    @Nls
+    String getBranchCoverageInformationString(@NotNull PsiFileSystemItem fileOrDir,
+                                              @NotNull CoverageSuitesBundle currentSuite,
+                                              @NotNull CoverageDataManager manager);
 }
