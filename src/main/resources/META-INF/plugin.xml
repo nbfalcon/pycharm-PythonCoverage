@@ -19,6 +19,7 @@
         <coverageEngine implementation="org.nbfalcon.pythonCoverage.coveragePy.CoveragePyEngine"/>
 
         <projectService serviceImplementation="org.nbfalcon.pythonCoverage.coveragePy.CoveragePyAnnotator"/>
+        <projectViewNodeDecorator implementation="org.nbfalcon.pythonCoverage.coveragePy.CoveragePyProjectNodeAnnotator"/>
 
         <projectService serviceImplementation="org.nbfalcon.pythonCoverage.settings.PythonCoverageProjectSettings"/>
         <applicationService serviceImplementation="org.nbfalcon.pythonCoverage.settings.PythonCoverageApplicationSettings"/>

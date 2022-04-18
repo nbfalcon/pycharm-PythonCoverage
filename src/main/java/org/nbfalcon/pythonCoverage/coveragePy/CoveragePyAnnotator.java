@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-// FIXME: packages view
 public class CoveragePyAnnotator extends SimpleCoverageAnnotator implements AnnotatorWithMembership, AnnotatorWithDetail {
     /**
      * Mapping of CoverageView => a hook that updates it once no longer updating.
@@ -56,20 +55,24 @@ public class CoveragePyAnnotator extends SimpleCoverageAnnotator implements Anno
     }
 
     public static boolean isAcceptedPythonFile(PsiFileSystemItem value) {
-        return value instanceof PsiFile
-                ? coveragePySupports((PsiFile) value)
-                : !Objects.equals(value.getName(), Project.DIRECTORY_STORE_FOLDER);
+        return value instanceof PsiFile ? coveragePySupports((PsiFile) value) : !Objects.equals(value.getName(), Project.DIRECTORY_STORE_FOLDER);
     }
 
     private static boolean coveragePySupports(PsiFile file) {
         final FileType fileType = file.getFileType();
-        // TODO: Is "Jinja2" actually true for PyCharm Professional?
-        return fileType == PythonFileType.INSTANCE || fileType.getName().equals("Jinja2");
+        // TODO: we don't support Jinja
+        // fileType.getName().equals("Jinja2");
+        return fileType == PythonFileType.INSTANCE;
+    }
+
+    // Expose protected method
+    @Override
+    public @Nullable DirCoverageInfo getDirCoverageInfo(@NotNull PsiDirectory directory, @NotNull CoverageSuitesBundle currentSuite) {
+        return super.getDirCoverageInfo(directory, currentSuite);
     }
 
     @Override
-    protected @Nullable
-    Runnable createRenewRequest(@NotNull CoverageSuitesBundle suite, @NotNull CoverageDataManager dataManager) {
+    protected @Nullable Runnable createRenewRequest(@NotNull CoverageSuitesBundle suite, @NotNull CoverageDataManager dataManager) {
         final Runnable renewRequest = super.createRenewRequest(suite, dataManager);
         if (renewRequest == null) return null;
 
@@ -81,8 +84,7 @@ public class CoveragePyAnnotator extends SimpleCoverageAnnotator implements Anno
     }
 
     @Override
-    protected @Nullable
-    DirCoverageInfo collectFolderCoverage(@NotNull VirtualFile dir, @NotNull CoverageDataManager dataManager, Annotator annotator, ProjectData projectInfo, boolean trackTestFolders, @NotNull ProjectFileIndex index, @NotNull CoverageEngine coverageEngine, Set<? super VirtualFile> visitedDirs, @NotNull Map<String, String> normalizedFiles2Files) {
+    protected @Nullable DirCoverageInfo collectFolderCoverage(@NotNull VirtualFile dir, @NotNull CoverageDataManager dataManager, Annotator annotator, ProjectData projectInfo, boolean trackTestFolders, @NotNull ProjectFileIndex index, @NotNull CoverageEngine coverageEngine, Set<? super VirtualFile> visitedDirs, @NotNull Map<String, String> normalizedFiles2Files) {
         if (!visitedDirs.add(dir)) return null;
 
         final Boolean indexOk = ReadAction.compute(() -> index.isInContent(dir) && (shouldCollectCoverageInsideLibraryDirs() || !index.isInLibrary(dir)));
@@ -96,8 +98,7 @@ public class CoveragePyAnnotator extends SimpleCoverageAnnotator implements Anno
             DirCoverageInfo result = new DirCoverageInfo();
             for (VirtualFile child : children) {
                 if (child.isDirectory()) {
-                    final DirCoverageInfo childInfo = collectFolderCoverage(child, dataManager, annotator, projectInfo, trackTestFolders, index,
-                            coverageEngine, visitedDirs, normalizedFiles2Files);
+                    final DirCoverageInfo childInfo = collectFolderCoverage(child, dataManager, annotator, projectInfo, trackTestFolders, index, coverageEngine, visitedDirs, normalizedFiles2Files);
                     if (childInfo != null) {
                         result.totalFilesCount += childInfo.totalFilesCount;
                         result.coveredFilesCount += childInfo.coveredFilesCount;
@@ -127,50 +128,44 @@ public class CoveragePyAnnotator extends SimpleCoverageAnnotator implements Anno
     }
 
     @Override
-    protected @Nullable
-    FileCoverageInfo fillInfoForUncoveredFile(@NotNull File file) {
+    protected @Nullable FileCoverageInfo fillInfoForUncoveredFile(@NotNull File file) {
         // Explicit null, see {@link #collectFolderCoverageInfo}
         return null;
     }
 
     // If true, getLinesCoverageInformationString() should return a detailed coverage info (k/n lines).
-    // This hack? is needed because myCoverageFileInfos is private and, unlike getDirCoverageInfo, there is no way to
+    // This HACK is needed because myCoverageFileInfos is private and, unlike getDirCoverageInfo, there is no way to
     // access it.
     private final ThreadLocal<Boolean> linesCoverageDetailed = new ThreadLocal<>();
 
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean isLinesCoverageDetailed() {
         final Boolean isDetailed = linesCoverageDetailed.get();
         return isDetailed != null && isDetailed;
     }
 
-    private static String formatPercent(@PropertyKey(resourceBundle = PythonCoverageBundle.BUNDLE) String key,
-                                        int covered, int total) {
+    private static String formatPercent(@PropertyKey(resourceBundle = PythonCoverageBundle.BUNDLE) String key, int covered, int total) {
         return PythonCoverageBundle.message(key, covered, total, calcPercent(covered, total));
     }
 
     @Override
-    protected @Nullable
-    @Nls
-    String getLinesCoverageInformationString(@NotNull FileCoverageInfo info) {
+    protected @Nullable @Nls String getLinesCoverageInformationString(@NotNull FileCoverageInfo info) {
         if (info instanceof DirCoverageInfo && ((DirCoverageInfo) info).coveredFilesCount == 0) return null;
 
-        if (!isLinesCoverageDetailed()) {
-            return super.getLinesCoverageInformationString(info);
+        if (isLinesCoverageDetailed()) {
+            return formatPercent("viewExtension.coveredLines%", info.coveredLineCount, info.totalLineCount);
         } else {
-            return formatPercent("viewExtension.coveredFiles%", info.coveredLineCount, info.totalLineCount);
+            return PythonCoverageBundle.message("viewExtension.coveredLines%Simple",
+                    calcPercent(info.coveredLineCount, info.totalLineCount));
         }
     }
 
     @Override
-    protected @Nullable
-    @Nls
-    String getFilesCoverageInformationString(@NotNull DirCoverageInfo info) {
+    public @Nullable @Nls String getFilesCoverageInformationString(@NotNull DirCoverageInfo info) {
         if (info.coveredFilesCount > 0) {
-            if (!isLinesCoverageDetailed()) {
-                return super.getFilesCoverageInformationString(info);
+            if (isLinesCoverageDetailed()) {
+                return formatPercent("viewExtension.coveredFiles%", info.coveredFilesCount, info.totalFilesCount);
             } else {
-                return formatPercent("viewExtension.coveredLines%", info.coveredFilesCount, info.totalFilesCount);
+                return super.getFilesCoverageInformationString(info);
             }
         } else {
             // For uncovered directories, show the amount of files in them only (covered would be 100%)
@@ -179,14 +174,9 @@ public class CoveragePyAnnotator extends SimpleCoverageAnnotator implements Anno
     }
 
     @Override
-    public @Nullable
-    @Nls
-    String getDetailedCoverageInformationString(@NotNull PsiFileSystemItem fileOrDir,
-                                                @NotNull CoverageSuitesBundle currentSuite, @NotNull CoverageDataManager manager) {
+    public @Nullable @Nls String getDetailedCoverageInformationString(@NotNull PsiFileSystemItem fileOrDir, @NotNull CoverageSuitesBundle currentSuite, @NotNull CoverageDataManager manager) {
         linesCoverageDetailed.set(true);
-        String result = fileOrDir instanceof PsiFile
-                ? getFileCoverageInformationString((PsiFile) fileOrDir, currentSuite, manager)
-                : getDirCoverageInformationString((PsiDirectory) fileOrDir, currentSuite, manager);
+        String result = fileOrDir instanceof PsiFile ? getFileCoverageInformationString((PsiFile) fileOrDir, currentSuite, manager) : getDirCoverageInformationString((PsiDirectory) fileOrDir, currentSuite, manager);
         linesCoverageDetailed.set(false);
         return result;
     }
