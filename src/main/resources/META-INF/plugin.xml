@@ -4,7 +4,18 @@
     <vendor email="nikblos@outlook.com" url="http://github.com/nbfalcon">Nikita Bloshchanevich</vendor>
 
     <description><![CDATA[
-    Adds coverage for python powered by [coverage.py](https://coverage.readthedocs.io/).
+    This plugin enables running Python code with coverage, powered by [coverage.py](https://coverage.readthedocs.io/).
+
+    Features
+    - Run Python3+ code with coverage in PyCharm Community Edition
+    - Coverage summary in the project view/summary tool window, total statistics for directories
+    - [https://coverage.readthedocs.io/en/6.3.2/branch.html](Branch coverage/tracing) (both in-editor and in the summary)
+    - Bundled coverage runner (so the plugin should work out-of-the-box)
+    - HTML export
+    - Tool window: a button to only show covered files (covered lines >= 1)
+
+    Limitations
+    - Currently only works for newer versions of coverage.py (-> Python 3)
 ]]></description>
     <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
          on how to target different products -->
@@ -14,19 +25,21 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <!-- Add your extensions here -->
-        <programRunner implementation="org.nbfalcon.pythonCoverage.coveragePy.CoveragePyProgramRunner"/>
-        <coverageRunner implementation="org.nbfalcon.pythonCoverage.coveragePy.CoveragePyRunner"/>
-        <coverageEngine implementation="org.nbfalcon.pythonCoverage.coveragePy.CoveragePyEngine"/>
+        <programRunner implementation="org.nbfalcon.pythonCoverage.coveragePy.CoveragePyProgramRunner" />
+        <coverageRunner implementation="org.nbfalcon.pythonCoverage.coveragePy.CoveragePyRunner" />
+        <coverageEngine implementation="org.nbfalcon.pythonCoverage.coveragePy.CoveragePyEngine" />
 
-        <projectService serviceImplementation="org.nbfalcon.pythonCoverage.coveragePy.CoveragePyAnnotator"/>
-        <projectViewNodeDecorator implementation="org.nbfalcon.pythonCoverage.coveragePy.CoveragePyProjectNodeAnnotator"/>
+        <projectService serviceImplementation="org.nbfalcon.pythonCoverage.coveragePy.CoveragePyAnnotator" />
+        <projectViewNodeDecorator
+            implementation="org.nbfalcon.pythonCoverage.coveragePy.CoveragePyProjectNodeAnnotator" />
 
-        <projectService serviceImplementation="org.nbfalcon.pythonCoverage.settings.PythonCoverageProjectSettings"/>
-        <applicationService serviceImplementation="org.nbfalcon.pythonCoverage.settings.PythonCoverageApplicationSettings"/>
-        <coverageOptions implementation="org.nbfalcon.pythonCoverage.settings.PythonCoverageSettingsUi"/>
+        <projectService serviceImplementation="org.nbfalcon.pythonCoverage.settings.PythonCoverageProjectSettings" />
+        <applicationService
+            serviceImplementation="org.nbfalcon.pythonCoverage.settings.PythonCoverageApplicationSettings" />
+        <coverageOptions implementation="org.nbfalcon.pythonCoverage.settings.PythonCoverageSettingsUi" />
 
-        <notificationGroup id="Python Coverage" displayType="STICKY_BALLOON"
-                           bundle="PythonCoverage" key="notifications.groups.pythonCoverage"/>
+        <notificationGroup id="Python Coverage" displayType="STICKY_BALLOON" bundle="PythonCoverage"
+            key="notifications.groups.pythonCoverage" />
     </extensions>
 
     <actions>
