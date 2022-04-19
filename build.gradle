@@ -24,10 +24,15 @@ intellij {
     plugins = ['PythonCore:213.5744.248']
 }
 patchPluginXml {
-    changeNotes = """
-      Add change notes here.<br>
-      <em>most HTML tags may be used</em>"""
+    changeNotes = ""
 }
 test {
     useJUnitPlatform()
+}
+
+prepareSandbox {
+    from("${rootDir}/vendor/coveragepy") {
+        into "${pluginName.get()}/dependencies/coveragepy"
+        include "**"
+    }
 }

@@ -23,6 +23,7 @@ import com.jetbrains.python.run.PythonCommandLineState;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.nbfalcon.pythonCoverage.bundle.PythonCoverageDependencies;
 import org.nbfalcon.pythonCoverage.settings.PythonCoverageProjectSettings;
 
 import java.io.File;
@@ -50,7 +51,6 @@ public class CoveragePyProgramRunner implements ProgramRunner<RunnerSettings> {
         return new CoverageRunnerData();
     }
 
-    // TODO: we should have a bundled coverage runner here
     @Override
     public void execute(@NotNull ExecutionEnvironment environment) throws ExecutionException {
         final RunProfileState state = environment.getState();
@@ -103,7 +103,7 @@ public class CoveragePyProgramRunner implements ProgramRunner<RunnerSettings> {
             final ParamsGroup coverageGroup = commandLine.getParametersList().getParamsGroup(PythonCommandLineState.GROUP_COVERAGE);
             assert coverageGroup != null;
             if (settings.coveragePyUseModule) coverageGroup.addParameters(settings.getCoveragePyModuleArgs());
-            else coverageGroup.addParameters("-m", "coverage"); // TODO: use bundled
+            else coverageGroup.addParameter(PythonCoverageDependencies.getCoveragePyModulePath().toString());
             coverageGroup.addParameters("run");
             // The JavaCoverageEngine just doesn't download the file if the path is null, and lets the CoverageRunner
             // proceed as if nothing happened, so we just do the same.

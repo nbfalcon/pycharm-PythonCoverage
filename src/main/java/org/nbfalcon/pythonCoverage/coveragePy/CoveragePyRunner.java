@@ -20,6 +20,7 @@ import com.intellij.rt.coverage.data.ProjectData;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.nbfalcon.pythonCoverage.bundle.PythonCoverageDependencies;
 import org.nbfalcon.pythonCoverage.i18n.PythonCoverageBundle;
 import org.nbfalcon.pythonCoverage.settings.PythonCoverageApplicationSettings;
 import org.nbfalcon.pythonCoverage.settings.SettingsUtil;
@@ -65,7 +66,8 @@ public class CoveragePyRunner extends CoverageRunner {
         try {
             final ProcessBuilder builder = SettingsUtil.createProcess(
                     PythonCoverageApplicationSettings.getInstance().getCoveragePyLoaderPythonCommand(),
-                    "-m", "coverage", "xml", "-o", "-");
+                    PythonCoverageDependencies.getCoveragePyModulePath().toString(),
+                    "xml", "-o", "-");
             builder.environment().put("COVERAGE_FILE", sessionDataFile.getAbsolutePath());
             Process process = builder.start();
             startedProcess = process;

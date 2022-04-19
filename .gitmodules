@@ -1,0 +1,3 @@
+[submodule "vendor/coveragepy"]
+	path = vendor/coveragepy
+	url = https://github.com/nedbat/coveragepy.git
